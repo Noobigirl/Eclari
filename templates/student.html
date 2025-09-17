@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclari — Student Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('home') }}">
+        <span class="brand-mark">E</span>
+        <span class="brand-text">Eclari</span>
+      </a>
+      <nav class="nav">
+        <span class="chip">Student</span>
+        <a class="button" href="{{ url_for('login') }}">Sign out</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid grid-2">
+      <div class="card ala-card" style="padding:16px;">
+        <h2 style="margin:0 0 10px; color:var(--ala-gold);">Welcome, Nicholas…</h2>
+        <div class="ala-light card" style="padding:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <span>Total Clearance Status</span>
+            <span id="overallPct" style="color:var(--muted); font-weight:600;">0%</span>
+          </div>
+          <div class="progress" style="margin-top:8px;">
+            <div class="progress-fill" id="overallFill"></div>
+          </div>
+        </div>
+        <div class="ala-light card" style="padding:12px; margin-top:12px;">
+          <h3 style="margin:0 0 8px;">To Do…</h3>
+          <div id="todoList" class="stack"></div>
+        </div>
+      </div>
+
+      <div class="card glass" style="padding:16px;">
+        <h3 style="margin:0 0 8px;">Your Portals</h3>
+        <div id="portals" class="portals"></div>
+        <div class="ala-light card" style="padding:12px; margin-top:12px;">
+          <h3 style="margin:0 0 8px;">Uploads (Y1)</h3>
+          <p style="color:var(--muted); margin:0 0 8px;">Upload photos of materials in your possession. Teachers will validate against item codes.</p>
+          <div class="stack">
+            <div class="input-group">
+              <label for="subjectSelect">Subject/Department</label>
+              <select id="subjectSelect"></select>
+            </div>
+            <div class="input-group">
+              <label for="itemCode">Item code</label>
+              <input class="input" id="itemCode" placeholder="e.g. MATH-BOOK-12" />
+            </div>
+            <div class="input-group">
+              <label for="photo">Photo</label>
+              <input class="input" id="photo" type="file" accept="image/*" />
+            </div>
+            <button id="uploadBtn" class="button button-primary">Upload</button>
+            <div id="uploadResult" style="color:var(--muted);"></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
+          <span id="overallStatus" class="badge">Overall: Pending</span>
+          <button class="button button-primary" id="exportBtn">Export Clearance</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+

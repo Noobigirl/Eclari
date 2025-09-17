@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclari — ALA Clearance System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('home') }}">
+        <span class="brand-mark">E</span>
+        <span class="brand-text">Eclari</span>
+      </a>
+      <nav class="nav">
+        <a class="nav-link" href="#features">Features</a>
+        <a class="nav-link" href="#how">How it Works</a>
+        <a class="button button-primary" href="{{ url_for('login') }}">Log in</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <h1 class="hero-title">Streamlined Student Clearance for ALA</h1>
+          <p class="hero-subtitle">No more chasing signatures. Eclari coordinates students and staffulty with role‑based dashboards, digital approvals, and exportable confirmations.</p>
+          <div class="hero-cta">
+            <a class="button button-primary" href="{{ url_for('login') }}">Get Started</a>
+            <a class="button button-ghost" href="#features">Explore Features</a>
+          </div>
+          <ul class="hero-highlights">
+            <li>ALA ID authentication</li>
+            <li>Photo uploads for Y1 materials</li>
+            <li>Teacher approvals & signatures</li>
+            <li>Finance, Halls, Sports, and Labs checks</li>
+            <li>Final PDF/CSV/Excel export</li>
+          </ul>
+        </div>
+        <div class="hero-media card glass">
+          <div class="mock-toolbar">
+            <span></span><span></span><span></span>
+          </div>
+          <img class="mock-image" src="https://images.unsplash.com/photo-1523246191919-33a262b7d37b?q=80&w=1200&auto=format&fit=crop" alt="Campus life collage">
+          <div class="mock-footer">
+            <div class="status-badges">
+              <span class="badge badge-success">Approved</span>
+              <span class="badge badge-warning">Pending</span>
+              <span class="badge badge-danger">Flagged</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-gradient"></div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="container">
+        <div style="text-align: center; margin-bottom: 48px;">
+          <h2 class="section-title" style="font-size: 32px; font-weight: 800; margin-bottom: 16px; background: linear-gradient(135deg, var(--primary), var(--ala-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Purpose‑built for ALA Workflows</h2>
+          <p style="font-size: 18px; color: var(--muted); max-width: 600px; margin: 0 auto;">Streamline year-end clearance with role-based dashboards, digital approvals, and automated tracking</p>
+        </div>
+        <div class="grid grid-3">
+          <div class="card feature">
+            <div class="feature-icon">🔐</div>
+            <h3>Multi‑role access</h3>
+            <p>Students, Teachers, Finance, Hall Heads, Coaches, and Labs each get tailored dashboards with scoped permissions.</p>
+          </div>
+          <div class="card feature">
+            <div class="feature-icon">📷</div>
+            <h3>Y1 photo uploads</h3>
+            <p>Upload proof of materials in possession. Teachers validate against item codes with instant verification.</p>
+          </div>
+          <div class="card feature">
+            <div class="feature-icon">🖊️</div>
+            <h3>Digital signatures</h3>
+            <p>Approvals include signatures and notes. Flags track missing or damaged items with detailed comments.</p>
+          </div>
+          <div class="card feature">
+            <div class="feature-icon">💳</div>
+            <h3>Finance visibility</h3>
+            <p>Tuition and replacement fees at a glance, with student search, bulk views, and payment tracking.</p>
+          </div>
+          <div class="card feature">
+            <div class="feature-icon">🏠</div>
+            <h3>Hall checks</h3>
+            <p>Room status flagged OK/Not OK by Hall Heads with quick notes and photo documentation.</p>
+          </div>
+          <div class="card feature">
+            <div class="feature-icon">📄</div>
+            <h3>Final exports</h3>
+            <p>Once cleared, students download a PDF/CSV/Excel confirmation to present at security with QR codes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="section section-alt">
+      <div class="container">
+        <h2 class="section-title">How Eclari speeds up year‑end clearance</h2>
+        <ol class="steps">
+          <li><strong>Log in</strong> with ALA Student or Staff ID.</li>
+          <li><strong>Track</strong> each clearance row tied to your classes and departments.</li>
+          <li><strong>Upload</strong> photos (Y1) or <strong>submit</strong> items (Y2) to teachers.</li>
+          <li><strong>Approve/Flag</strong> by Teachers, Finance, Hall Heads, Coaches, Labs.</li>
+          <li><strong>Export</strong> final clearance once all rows are approved.</li>
+        </ol>
+        <div class="cta">
+          <a class="button button-primary" href="./login.html">Log in to Eclari</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>© <span id="year"></span> Eclari • Built for ALA</span>
+      <nav class="footer-nav">
+        <a href="#features">Features</a>
+        <a href="#how">How it Works</a>
+        <a href="{{ url_for('login') }}">Log in</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+

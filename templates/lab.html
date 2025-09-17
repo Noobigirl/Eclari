@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclari — Labs Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('home') }}">
+        <span class="brand-mark">E</span>
+        <span class="brand-text">Eclari</span>
+      </a>
+      <nav class="nav">
+        <span class="chip">Labs</span>
+        <a class="button" href="{{ url_for('login') }}">Sign out</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="toolbar">
+      <h1 style="margin:0;">Lab Materials</h1>
+      <input id="labSearch" class="input" placeholder="Search students…" style="min-width:260px;">
+    </div>
+    <div class="card glass" style="padding:16px;">
+      <table class="table" id="labTable">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Subject</th>
+            <th>Item</th>
+            <th>Cost</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+

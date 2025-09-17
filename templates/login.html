@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclari — Log in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('home') }}">
+        <span class="brand-mark">E</span>
+        <span class="brand-text">Eclari</span>
+      </a>
+      <nav class="nav">
+        <a class="nav-link" href="{{ url_for('home') }}#features">Features</a>
+        <a class="nav-link" href="{{ url_for('home') }}#how">How it Works</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth">
+    <div class="auth-visual" style="display:grid; place-items:center;">
+      <div class="card ala-card auth-card" style="text-align:center; color: var(--ala-gold);">
+        <div class="crest">
+          <img src="https://i.imgur.com/SCb4r8V.png" alt="ALA Crest">
+        </div>
+        <h2 class="ala-title" style="margin:12px 0 6px;">Welcome To ALAClearance…</h2>
+        <p style="margin:0; color:#f3e7c2;">African Leadership Academy • Student Clearance Portal</p>
+      </div>
+    </div>
+    <div class="container">
+      <div class="auth-card">
+        <h1 style="margin:0 0 6px;">Sign in</h1>
+        <p style="color:var(--muted); margin:0 0 16px;">Use your ALA ID and password</p>
+        <div class="stack">
+          <div class="input-group">
+            <label for="role">Role</label>
+            <select id="role">
+              <option value="student" selected>Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="finance">Finance</option>
+              <option value="hall">Hall Head</option>
+              <option value="coach">Coach</option>
+              <option value="lab">Lab Staff</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label id="id-label" for="id">ALA ID</label>
+            <input class="input" id="id" placeholder="e.g. S12345 or T004" />
+          </div>
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input class="input" id="password" type="password" placeholder="••••••••" />
+          </div>
+          <button id="loginBtn" class="button button-primary" style="width:100%;">Log in</button>
+          <a href="{{ url_for('home') }}" class="button button-ghost" style="width:100%;">Back to Home</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+
