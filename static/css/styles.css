@@ -1,8 +1,8 @@
 /* Design system */
 :root {
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f8f9fa;
+  --bg: #F5E9DC;
+  --surface: #7A3723;
+  --surface-2: #f5f0e8;
   --text: #1f2937;
   --muted: #6b7280;
   --primary: #6b1f1f; /* maroon */
@@ -43,12 +43,12 @@ body {
 }
 
 /* Header */
-.site-header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(6px); background: rgba(255,255,255,.8); border-bottom: 1px solid var(--border); }
+.site-header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(6px); background: rgba(94, 27, 27, 0.8); border-bottom: 1px solid var(--border); }
 .header-inner {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 0;
 }
-.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ala-gold-lightt); text-decoration: none; }
 .brand-mark {
   display: grid; place-items: center;
   width: 34px; height: 34px; border-radius: 10px;
@@ -56,9 +56,9 @@ body {
   background: linear-gradient(135deg, var(--primary), var(--ala-maroon));
   box-shadow: 0 8px 24px rgba(107,31,31,.25);
 }
-.brand-text { font-weight: 700; letter-spacing: .2px; }
+.brand-text { font-weight: 700; letter-spacing: .2px;color: var(--ala-gold-light);}
 .nav { display: flex; align-items: center; gap: 18px; }
-.nav-link { color: var(--muted); text-decoration: none; font-weight: 500; }
+.nav-link { color: var( --ala-gold-light); text-decoration: none; font-weight: 500; }
 .nav-link:hover { color: var(--text); }
 
 /* Buttons */
@@ -75,20 +75,34 @@ body {
   box-shadow: var(--shadow);
 }
 .button-primary { 
-  border: none; background: linear-gradient(135deg, var(--primary), var(--primary-600)); 
+  border: none; background: linear-gradient(135deg, var(--primary), var(--ala-maroon)); 
   color: white; box-shadow: var(--shadow-lg); 
 }
 .button-primary:hover { 
   filter: brightness(1.1); 
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(107,31,31,.3);
+  box-shadow: 0 8px 30px rgba(107, 93, 31, 0.3);
+  color:#f5d58a
+}
+/* New specific styles for login button */
+.button-login { 
+  border: none; 
+  background: linear-gradient(135deg, var(--ala-gold), var(--ala-gold-light)); 
+  color: white; 
+  box-shadow: var(--shadow-lg); 
+}
+.button-login:hover { 
+  filter: brightness(1.1); 
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(107, 93, 31, 0.3);
+  color: #f5d58a;
 }
 .button-ghost { 
   background: transparent; border: 1px solid var(--primary); 
   color: var(--primary);
 }
 .button-ghost:hover {
-  background: var(--primary);
+  background: var(--primary-600);
   color: white;
 }
 
