@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclari — Subject Details</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('student') }}">
+        <span class="brand-mark">E</span>
+        <span class="brand-text">Eclari</span>
+      </a>
+      <nav class="nav">
+        <span class="chip">Student</span>
+        <a class="button" href="{{ url_for('login') }}">Sign out</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid grid-2">
+      <div class="card ala-card" style="padding:16px;">
+        <h2 id="subjectTitle" style="margin:0 0 10px; color:var(--ala-gold);">Subject</h2>
+        <div class="ala-light card" style="padding:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <span>Subject Clearance Status</span>
+            <span id="subjectPct" style="color:var(--muted); font-weight:600;">0%</span>
+          </div>
+          <div class="progress" style="margin-top:8px;">
+            <div class="progress-fill" id="subjectFill"></div>
+          </div>
+        </div>
+        <div class="ala-light card" style="padding:12px; margin-top:12px;">
+          <h3 style="margin:0 0 8px;">To Do…</h3>
+          <div id="subjectTodo" class="stack"></div>
+        </div>
+      </div>
+      <div class="card glass" style="padding:16px;">
+        <h3 style="margin:0 0 8px;">Actions</h3>
+        <div class="stack">
+          <button class="button button-primary">Manage Clearance(s)</button>
+          <button class="button">Add New Clearance(s)</button>
+          <a class="button button-ghost" href="{{ url_for('student') }}">Back to Dashboard</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,241 @@
+// Minimal interactivity with mock data to demonstrate flows
+(function(){
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  // Footer year
+  const y = $('#year'); if (y) y.textContent = new Date().getFullYear();
+
+  // Login routing -> Flask endpoints
+  const loginBtn = $('#loginBtn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      const role = $('#role').value;
+      const routes = { student: '/student', teacher: '/teacher', finance: '/finance', hall: '/hall', coach: '/coach', lab: '/lab' };
+      window.location.href = routes[role] || '/student';
+    });
+  }
+
+  // Student dashboard mock (ALA-inspired)
+  const portalsEl = $('#portals');
+  if (portalsEl) {
+    // Limit to five subjects (until DB integration)
+    const subjects = [
+      { id: 'wr', label: 'W&R' },
+      { id: 'afst', label: 'Af. St' },
+      { id: 'math', label: 'Math' },
+      { id: 'cs', label: 'CS' },
+      { id: 'econ', label: 'Econ' },
+    ];
+    subjects.forEach(s => {
+      const a = document.createElement('a');
+      a.href = `/subject?subject=${encodeURIComponent(s.label)}`;
+      a.className = 'portal';
+      const span = document.createElement('span');
+      span.textContent = s.label;
+      a.appendChild(span);
+      portalsEl.appendChild(a);
+    });
+
+    // To-dos and progress
+    const todos = [
+      { text: 'Clear Math S1 Book', done: false },
+      { text: 'Physics Book', done: false },
+      { text: "Clear Dues w/ Finance", done: false },
+    ];
+    const todoList = $('#todoList');
+    if (todoList) {
+      todos.forEach(t => {
+        const row = document.createElement('div');
+        row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.alignItems = 'center'; row.style.gap = '8px';
+        row.innerHTML = `<span>${t.text}</span><span class="badge ${t.done ? 'badge-success' : 'badge-warning'}">${t.done ? 'Done' : 'Pending'}</span>`;
+        todoList.appendChild(row);
+      });
+    }
+    const pct = Math.round((todos.filter(t => t.done).length / todos.length) * 100);
+    const fill = $('#overallFill'); const pctEl = $('#overallPct');
+    if (fill && pctEl) { fill.style.width = pct + '%'; pctEl.textContent = pct + '%'; }
+    const overall = $('#overallStatus');
+    if (overall) {
+      const approved = pct === 100;
+      overall.textContent = approved ? 'Overall: Approved' : 'Overall: Pending';
+      overall.className = 'badge ' + (approved ? 'badge-success' : 'badge-warning');
+    }
+    const exportBtn = $('#exportBtn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => alert('This will export PDF/CSV/Excel once backend is connected.'));
+    }
+
+    // Populate upload subject select
+    const subjectSelect = $('#subjectSelect');
+    if (subjectSelect) {
+      subjects.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id; opt.textContent = r.label; subjectSelect.appendChild(opt);
+      });
+    }
+    $('#uploadBtn')?.addEventListener('click', () => {
+      const code = $('#itemCode').value.trim(); const file = $('#photo').files[0]; const res = $('#uploadResult');
+      if (!code || !file) { res.textContent = 'Please provide item code and a photo.'; return; }
+      if (!file.type.startsWith('image/')) { res.textContent = 'Please upload a valid image.'; return; }
+      res.textContent = 'Uploaded successfully. Awaiting teacher validation.';
+    });
+  }
+
+  // Subject detail page
+  const subjectTitle = $('#subjectTitle');
+  if (subjectTitle) {
+    const params = new URLSearchParams(location.search); const s = params.get('subject') || 'Subject';
+    subjectTitle.textContent = s;
+    const items = [
+      { text: `${s} S1 Book`, done: false },
+      { text: 'Return Calculator', done: true },
+      { text: `${s} P1 Book`, done: false },
+    ];
+    const pct = Math.round((items.filter(i => i.done).length / items.length) * 100);
+    $('#subjectPct').textContent = pct + '%';
+    $('#subjectFill').style.width = pct + '%';
+    const wrap = $('#subjectTodo');
+    items.forEach(i => {
+      const row = document.createElement('div'); row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.alignItems = 'center'; row.style.gap = '8px';
+      row.innerHTML = `<span>${i.text}</span><span class="badge ${i.done ? 'badge-success' : 'badge-warning'}">${i.done ? 'Completed' : 'Press to Clear Now'}</span>`;
+      wrap.appendChild(row);
+    });
+  }
+
+  // Teacher dashboard mock
+  const teacherTable = $('#teacherTable tbody');
+  if (teacherTable) {
+    // Scoped to classes taught by this teacher
+    const items = [
+      { class: 'Math Y2-A', student: 'S12345 • Ama N.', subject: 'Mathematics', item: 'Textbook MATH-BOOK-12', returned: false },
+      { class: 'Math Y2-A', student: 'S12002 • Malik O.', subject: 'Mathematics', item: 'Workbook MATH-WB-07', returned: true },
+      { class: 'Physics Y1-B', student: 'S12811 • Tumi K.', subject: 'Physics', item: 'Calculator CALC-84', returned: false },
+    ];
+    items.forEach(it => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${it.class}</td>
+        <td>${it.student}</td>
+        <td>${it.subject}</td>
+        <td>${it.item}</td>
+        <td><span class="badge ${it.returned ? 'badge-success' : 'badge-warning'}">${it.returned ? 'Returned' : 'Not Returned'}</span></td>
+        <td>
+          <button class="button button-primary">Mark Returned</button>
+          <button class="button">Flag Issue</button>
+        </td>
+      `;
+      teacherTable.appendChild(tr);
+    });
+    // Signature pad
+    const canvas = $('#sigPad');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      let drawing = false; let last = null;
+      canvas.addEventListener('pointerdown', (e) => { drawing = true; last = [e.offsetX, e.offsetY]; });
+      canvas.addEventListener('pointerup', () => { drawing = false; last = null; });
+      canvas.addEventListener('pointermove', (e) => {
+        if (!drawing) return; const [lx, ly] = last; const x = e.offsetX, y = e.offsetY; ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke(); last = [x, y];
+      });
+      $('#clearSig')?.addEventListener('click', () => { ctx.clearRect(0,0,canvas.width, canvas.height); });
+      $('#saveSig')?.addEventListener('click', () => { alert('Signature saved (mock).'); });
+    }
+  }
+
+  // Finance dashboard mock
+  const financeTable = $('#financeTable tbody');
+  if (financeTable) {
+    const students = [
+      { name: 'S12345 • Ama N.', tuition: 0, replace: 0, status: 'Clear' },
+      { name: 'S12002 • Malik O.', tuition: 300, replace: 0, status: 'Due' },
+      { name: 'S12811 • Tumi K.', tuition: 0, replace: 45, status: 'Due' }
+    ];
+    const statusClass = (s) => s === 'Clear' ? 'badge-success' : 'badge-danger';
+    students.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.name}</td>
+        <td>$${s.tuition}</td>
+        <td>$${s.replace}</td>
+        <td><span class="badge ${statusClass(s.status)}">${s.status}</span></td>
+      `;
+      financeTable.appendChild(tr);
+    });
+  }
+
+  // Hall dashboard mock
+  const hallTable = $('#hallTable tbody');
+  if (hallTable) {
+    // Only students in assigned hall (mock)
+    const rooms = [
+      { student: 'S12345 • Ama N.', hall: 'Kibo', room: 'A-203', status: 'OK' },
+      { student: 'S12002 • Malik O.', hall: 'Kibo', room: 'A-118', status: 'Not OK' }
+    ];
+    const statusClass = (s) => s === 'OK' ? 'badge-success' : 'badge-danger';
+    rooms.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.student}</td>
+        <td>${r.hall}</td>
+        <td>${r.room}</td>
+        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
+        <td>
+          <button class="button button-primary">Mark OK</button>
+          <button class="button">Mark Not OK</button>
+        </td>
+      `;
+      hallTable.appendChild(tr);
+    });
+  }
+
+  // Coach dashboard mock
+  const coachTable = $('#coachTable tbody');
+  if (coachTable) {
+    // Only students who do sport (mock scope)
+    const sports = [
+      { student: 'S12345 • Ama N.', sport: 'Basketball', item: 'Jersey #12', status: 'Returned' },
+      { student: 'S12811 • Tumi K.', sport: 'Soccer', item: 'Shin Guards', status: 'Lost' }
+    ];
+    const statusClass = (s) => s === 'Returned' ? 'badge-success' : 'badge-danger';
+    sports.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.student}</td>
+        <td>${r.sport}</td>
+        <td>${r.item}</td>
+        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
+        <td>
+          <button class="button button-primary">Mark Returned</button>
+          <button class="button">Flag Lost</button>
+        </td>
+      `;
+      coachTable.appendChild(tr);
+    });
+  }
+
+  // Lab dashboard mock
+  const labTable = $('#labTable tbody');
+  if (labTable) {
+    const labs = [
+      { student: 'S12345 • Ama N.', subject: 'Chemistry', item: 'Goggles', cost: 0, status: 'OK' },
+      { student: 'S12002 • Malik O.', subject: 'Biology', item: 'Lab Manual', cost: 15, status: 'Cost' }
+    ];
+    const statusClass = (s) => s === 'OK' ? 'badge-success' : 'badge-warning';
+    labs.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.student}</td>
+        <td>${r.subject}</td>
+        <td>${r.item}</td>
+        <td>$${r.cost}</td>
+        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
+        <td>
+          <button class="button button-primary">Resolve</button>
+        </td>
+      `;
+      labTable.appendChild(tr);
+    });
+  }
+})();
+
+
