@@ -1,13 +1,13 @@
 /* constants used throughout */
 :root {
-  --bg: #dfcfbe;
-  --surface: #7A3723;
+  --bg: #dfd7c5;
+  --surface: #4a2323; /* Updated to use ALA maroon */
   --surface-2: #f5f0e8;
   --text: #1f2937;
   --muted: #6b7280;
-  --primary: #6b1f1f; /* maroon */
-  --primary-600: #551818;
-  --primary-800: #3d1414;
+  --primary: #4a2323; /* Updated to use ALA maroon */
+  --primary-600: #3a1a1a; /* Updated to use ALA maroon-600 */
+  --primary-800: #2d1313; /* Updated to use ALA maroon-800 */
   /* ALA theme */
   --ala-maroon: #4a2323;
   --ala-maroon-600: #3a1a1a;
@@ -18,12 +18,12 @@
   --warning: #d97706;
   --danger: #dc2626;
   --glass: rgba(255,255,255,0.95);
-  --border: rgba(107,31,31,0.15);
-  --border-light: rgba(107,31,31,0.08);
+  --border: rgba(74,35,35,0.15); /* Updated to use ALA maroon */
+  --border-light: rgba(74,35,35,0.08); /* Updated to use ALA maroon */
   --radius: 12px;
   --radius-sm: 10px;
-  --shadow: 0 8px 30px rgba(107,31,31,0.25);
-  --shadow-lg: 0 10px 40px rgba(107,31,31,0.2);
+  --shadow: 0 8px 30px rgba(74,35,35,0.25); /* Updated to use ALA maroon */
+  --shadow-lg: 0 10px 40px rgba(74,35,35,0.2); /* Updated to use ALA maroon */
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +32,7 @@ body {
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   color: var(--text);
-  background: radial-gradient(1200px 600px at 80% -20%, rgba(107,31,31,.08), transparent 60%),
+  background: radial-gradient(1200px 600px at 80% -20%, rgba(74,35,35,.08), transparent 60%),
               radial-gradient(800px 500px at -10% 20%, rgba(245,213,138,.12), transparent 60%),
               var(--bg);
 }
@@ -57,7 +57,7 @@ body {
   top: 0; 
   z-index: 20; 
   backdrop-filter: blur(6px); 
-  background: rgba(94, 27, 27, 0.8); 
+  background: rgba(74, 35, 35, 0.9); /* Updated to use ALA maroon */
   border-bottom: 1px solid var(--border); 
 }
 .header-inner {
@@ -81,8 +81,8 @@ body {
   border-radius: 10px;
   color: #fff; 
   font-weight: 800;
-  background: linear-gradient(135deg, var(--primary), var(--ala-maroon));
-  box-shadow: 0 8px 24px rgba(107,31,31,.25);
+  background: var(--ala-maroon);
+  box-shadow: 0 8px 24px rgba(74,35,35,.25); /* Updated to use ALA maroon */
 }
 .brand-text { 
   font-weight: 700; 
@@ -103,45 +103,140 @@ body {
   color: var(--text); 
 }
 
+/* Enhanced Form Controls */
+.input, select { 
+  width: 100%; 
+  padding: 14px 16px; /* Increased padding for better touch targets */
+  border-radius: 12px; /* Slightly more rounded */
+  background: #fff; /* Clean white background */
+  border: 2px solid var(--border-light); 
+  color: var(--text); 
+  font-family: inherit; /* Use the Inter font */
+  font-size: 15px; /* Slightly larger font */
+  font-weight: 500; /* Medium weight for better readability */
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(74,35,35,0.08); /* Subtle shadow */
+}
+
+.input:focus, select:focus {
+  outline: none;
+  border-color: var(--ala-maroon);
+  box-shadow: 0 4px 12px rgba(74,35,35,0.15), 0 0 0 3px rgba(74,35,35,0.1);
+  background: #fff;
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+.input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Select box specific styling - Complete reset */
+select {
+  cursor: pointer;
+  /* Remove all default appearances */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -ms-appearance: none;
+  
+  /* Force background reset */
+  background: #fff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+  
+  /* Additional resets */
+  border-radius: 12px;
+  outline: none;
+}
+
+/* Remove default select arrows in all browsers */
+select::-ms-expand {
+  display: none;
+}
+
+select::-webkit-outer-spin-button,
+select::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox specific fix */
+select {
+  -moz-appearance: textfield;
+}
+
+/* Force override any inherited styling */
+select option {
+  background: white;
+  color: var(--text);
+}
+
+select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234a2323' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Enhanced labels */
+.input-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ala-maroon);
+  margin-bottom: 8px;
+  letter-spacing: 0.025em;
+}
+
+.input-group {
+  display: grid; 
+  gap: 8px; 
+}
+
 /* Buttons */
 .button { 
   display: inline-flex; 
   align-items: center; 
   justify-content: center; 
   gap: 8px; 
-  padding: 12px 20px; 
-  border-radius: 10px; 
+  padding: 14px 20px; /* Increased padding to match inputs */
+  border-radius: 12px; /* Match input border radius */
   text-decoration: none; 
   font-weight: 600; 
-  border: 1px solid var(--border); 
+  font-size: 15px; /* Match input font size */
+  border: 2px solid var(--border); 
   color: var(--text); 
   background: #fff; 
-  transition: all 0.2s ease; 
+  transition: all 0.3s ease; 
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(74,35,35,0.08);
 }
 .button:hover { 
   background: var(--surface-2); 
   border-color: var(--primary); 
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow);
 }
 .button-primary { 
   border: none; 
-  background: linear-gradient(135deg, var(--primary), var(--ala-maroon)); 
+  background: linear-gradient(135deg, var(--ala-maroon), var(--ala-maroon-600)); 
   color: white; 
   box-shadow: var(--shadow-lg); 
+  font-weight: 700;
 }
 .button-primary:hover { 
-  filter: brightness(1.1); 
+  background: linear-gradient(135deg, var(--ala-maroon-600), var(--ala-maroon-800));
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(107, 31, 31, 0.3);
-  color: #f5d58a;
+  box-shadow: 0 8px 30px rgba(74, 35, 35, 0.3);
+  color: var(--ala-gold-light);
 }
 
 /* Specific styles for login button */
 .button-login { 
   border: none; 
-  background: linear-gradient(135deg, var(--ala-gold), var(--ala-gold-light)); 
+  background: var(--ala-gold-light); 
   color: white; 
   box-shadow: var(--shadow-lg); 
 }
@@ -154,11 +249,11 @@ body {
 
 .button-ghost { 
   background: transparent; 
-  border: 1px solid var(--primary); 
-  color: var(--primary);
+  border: 2px solid var(--ala-maroon); 
+  color: var(--ala-maroon);
 }
 .button-ghost:hover {
-  background: var(--primary-600);
+  background: var(--ala-maroon);
   color: white;
 }
 
@@ -171,7 +266,7 @@ body {
   position: absolute; 
   inset: 0; 
   pointer-events: none; 
-  background: radial-gradient(600px 320px at 20% 10%, rgba(107,31,31,.1), transparent 60%); 
+  background: radial-gradient(600px 320px at 20% 10%, rgba(74,35,35,.1), transparent 60%); /* Updated to use ALA maroon */
 }
 .hero-inner { 
   display: grid; 
@@ -312,7 +407,7 @@ body {
   left: 0; 
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary), var(--ala-gold));
+  background: var(--primary);
   transform: scaleX(0);
   transition: transform 0.3s ease;
 }
@@ -401,7 +496,7 @@ body {
   min-height: calc(100vh - 64px); 
 }
 .auth-visual { 
-  background: linear-gradient(135deg, rgba(107,31,31,.12), rgba(245,213,138,.12)); 
+  background: linear-gradient(135deg, rgba(74,35,35,.12), rgba(245,213,138,.12)); /* Updated to use ALA maroon */
   border-right: 1px solid var(--border); 
   display: grid; 
   place-items: center; 
@@ -409,24 +504,13 @@ body {
 .auth-card { 
   max-width: 420px; 
   width: 100%; 
-  padding: 18px; 
+  padding: 32px; /* Increased padding for better spacing */
   margin: 0 auto; 
 }
-.input, select { 
-  width: 100%; 
-  padding: 10px 12px; 
-  border-radius: 10px; 
-  background: rgba(255,255,255,.03); 
-  border: 1px solid var(--border); 
-  color: var(--text); 
-}
-.input-group { 
-  display: grid; 
-  gap: 8px; 
-}
+
 .stack { 
   display: grid; 
-  gap: 12px; 
+  gap: 20px; /* Increased gap for better spacing */
 }
 
 .toolbar { 
@@ -457,14 +541,14 @@ body {
   font-weight: 600;
   border: 1px solid var(--ala-gold-light); 
   color: var(--ala-gold-light); 
-  background: rgba(107,31,31,0.1);
+  background: rgba(74,35,35,0.1); /* Updated to use ALA maroon */
   transition: all 0.2s ease;
 }
 
 /* ALA themed blocks */
 .ala-card { 
-  background: linear-gradient(90deg, var(--ala-maroon), var(--ala-maroon-600)); 
-  border: 1px solid rgba(107,31,31,.35); 
+  background: linear-gradient(135deg, var(--ala-maroon), var(--ala-maroon-600)); 
+  border: 1px solid rgba(74,35,35,.35); /* Updated to use ALA maroon */
   box-shadow: var(--shadow-lg);
 }
 .ala-light { 
@@ -570,5 +654,9 @@ body {
   }
   .portals {
     grid-template-columns: 1fr;
+  }
+  
+  .auth-card {
+    padding: 24px;
   }
 }
