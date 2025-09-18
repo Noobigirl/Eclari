@@ -105,7 +105,7 @@ body {
 
 /* Enhanced Form Controls */
 .input, select { 
-  width: 100%; 
+  max-width: 100%; 
   padding: 14px 16px; /* Increased padding for better touch targets */
   border-radius: 12px; /* Slightly more rounded */
   background: #fff; /* Clean white background */
@@ -132,53 +132,11 @@ body {
   opacity: 0.7;
 }
 
-/* Select box specific styling - Complete reset */
+/* Select box specific styling - Using default arrow */
 select {
   cursor: pointer;
-  /* Remove all default appearances */
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  -ms-appearance: none;
-  
-  /* Force background reset */
-  background: #fff;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 12px center;
-  background-repeat: no-repeat;
-  background-size: 16px;
-  padding-right: 40px;
-  
-  /* Additional resets */
-  border-radius: 12px;
-  outline: none;
 }
 
-/* Remove default select arrows in all browsers */
-select::-ms-expand {
-  display: none;
-}
-
-select::-webkit-outer-spin-button,
-select::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* Firefox specific fix */
-select {
-  -moz-appearance: textfield;
-}
-
-/* Force override any inherited styling */
-select option {
-  background: white;
-  color: var(--text);
-}
-
-select:focus {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234a2323' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-}
 
 /* Enhanced labels */
 .input-group label {
@@ -214,8 +172,8 @@ select:focus {
   box-shadow: 0 2px 8px rgba(74,35,35,0.08);
 }
 .button:hover { 
-  background: var(--surface-2); 
-  border-color: var(--primary); 
+  background: white; 
+  border-color: var(--ala-gold); 
   transform: translateY(-2px);
   box-shadow: var(--shadow);
 }
@@ -312,8 +270,8 @@ select:focus {
 .card.ala-card,
 .card.glass {
   flex: 1;
-  max-width: 500px;
-  min-width: 300px;
+  max-width: 1000px;
+  min-width: 500px;
 }
 
 .mock-toolbar { 
@@ -620,7 +578,7 @@ select:focus {
   left: 0; 
   right: 0; 
   bottom: 0;
-  background: linear-gradient(135deg, var(--primary), var(--ala-gold));
+  background: var(--ala-gold-light);
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: 0;
@@ -628,7 +586,7 @@ select:focus {
 .portal:hover { 
   transform: translateY(-2px);
   box-shadow: var(--shadow);
-  border-color: var(--primary);
+  border-color: var(--ala-gold-light);
 }
 .portal:hover::before {
   opacity: 0.1;
