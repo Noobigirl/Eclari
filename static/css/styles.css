@@ -458,7 +458,21 @@ select {
   border-right: 1px solid var(--border); 
   display: grid; 
   place-items: center; 
+  position: relative;
+  overflow: hidden;
 }
+.auth-visual::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--auth-visual-bg, url('/static/images/ala.jpeg'));
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px) saturate(1.05);
+  transform: scale(1.08);
+  opacity: 0.45;
+}
+.auth-visual > * { position: relative; z-index: 1; }
 .auth-card { 
   max-width: 420px; 
   width: 100%; 

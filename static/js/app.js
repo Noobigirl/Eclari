@@ -2,6 +2,47 @@
 (function(){
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+  // Role-based login visual + subtitle
+  const roleSelect = $('#role');
+  const subtitleEl = $('#loginSubtitle');
+  const authVisual = document.querySelector('.auth-visual');
+  const roleMeta = {
+    student: {
+      subtitle: 'African Leadership Academy • Student Clearance Portal',
+      bg: "url('/static/images/student.jpg')"
+    },
+    teacher: {
+      subtitle: 'African Leadership Academy • Teacher Clearance Dashboard',
+      bg: "url('/static/images/teacher.jpg')"
+    },
+    finance: {
+      subtitle: 'African Leadership Academy • Finance Clearance Dashboard',
+      bg: "url('/static/images/finance.jpg')"
+    },
+    hall: {
+      subtitle: 'African Leadership Academy • Hall Clearance Dashboard',
+      bg: "url('/static/images/hall.jpg')"
+    },
+    coach: {
+      subtitle: 'African Leadership Academy • Sports Clearance Dashboard',
+      bg: "url('/static/images/coach.jpg')"
+    },
+    lab: {
+      subtitle: 'African Leadership Academy • Labs Clearance Dashboard',
+      bg: "url('/static/images/lab.jpg')"
+    }
+  };
+
+  function applyRoleVisual(role) {
+    const meta = roleMeta[role] || roleMeta.student;
+    if (subtitleEl) subtitleEl.textContent = meta.subtitle;
+    if (authVisual) authVisual.style.setProperty('--auth-visual-bg', meta.bg);
+  }
+
+  if (roleSelect) {
+    applyRoleVisual(roleSelect.value);
+    roleSelect.addEventListener('change', (e) => applyRoleVisual(e.target.value));
+  }
 
   // Footer year
   const y = $('#year'); if (y) y.textContent = new Date().getFullYear();
