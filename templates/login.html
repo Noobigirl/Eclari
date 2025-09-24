@@ -40,14 +40,28 @@
         <div class="stack">
           <div class="input-group">
             <label for="role">Role</label>
-            <select id="role">
-              <option value="student" selected>Student</option>
-              <option value="teacher">Teacher</option>
-              <option value="finance">Finance</option>
-              <option value="hall">Hall Head</option>
-              <option value="coach">Coach</option>
-              <option value="lab">Lab Staff</option>
-            </select>
+            <div class="select-wrap" id="roleSelectWrap">
+              <select id="role" class="select-hidden" aria-label="Role">
+                <option value="student" selected>Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="finance">Finance</option>
+                <option value="hall">Hall Head</option>
+                <option value="coach">Coach</option>
+                <option value="lab">Lab Staff</option>
+              </select>
+              <button type="button" class="select-trigger" id="roleTrigger" aria-haspopup="listbox" aria-expanded="false">
+                <span id="roleTriggerText">Student</span>
+                <span class="select-caret"></span>
+              </button>
+              <div class="select-menu" id="roleMenu" role="listbox" aria-labelledby="roleTrigger">
+                <div class="select-option" role="option" data-value="student" tabindex="0" aria-selected="true">Student</div>
+                <div class="select-option" role="option" data-value="teacher" tabindex="0">Teacher</div>
+                <div class="select-option" role="option" data-value="finance" tabindex="0">Finance</div>
+                <div class="select-option" role="option" data-value="hall" tabindex="0">Hall Head</div>
+                <div class="select-option" role="option" data-value="coach" tabindex="0">Coach</div>
+                <div class="select-option" role="option" data-value="lab" tabindex="0">Lab Staff</div>
+              </div>
+            </div>
           </div>
           <div class="input-group">
             <label id="id-label" for="id">ALA ID</label>

@@ -4,6 +4,10 @@
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   // Role-based login visual + subtitle
   const roleSelect = $('#role');
+  const roleTrigger = $('#roleTrigger');
+  const roleTriggerText = $('#roleTriggerText');
+  const roleMenu = $('#roleMenu');
+  const roleWrap = $('#roleSelectWrap');
   const subtitleEl = $('#loginSubtitle');
   const authVisual = document.querySelector('.auth-visual');
   const roleMeta = {
@@ -71,6 +75,44 @@
   if (roleSelect) {
     applyRoleVisual(roleSelect.value);
     roleSelect.addEventListener('change', (e) => applyRoleVisual(e.target.value));
+  }
+
+  // Custom dropdown wiring (progressive enhancement)
+  if (roleTrigger && roleMenu && roleSelect && roleWrap) {
+    const options = Array.from(roleMenu.querySelectorAll('.select-option'));
+    function closeMenu() {
+      roleWrap.classList.remove('select-open');
+      roleTrigger.setAttribute('aria-expanded', 'false');
+    }
+    function openMenu() {
+      roleWrap.classList.add('select-open');
+      roleTrigger.setAttribute('aria-expanded', 'true');
+    }
+    roleTrigger.addEventListener('click', () => {
+      const isOpen = roleWrap.classList.contains('select-open');
+      isOpen ? closeMenu() : openMenu();
+    });
+    options.forEach(opt => {
+      opt.addEventListener('click', () => {
+        const value = opt.getAttribute('data-value');
+        roleSelect.value = value;
+        roleTriggerText.textContent = opt.textContent;
+        options.forEach(o => o.setAttribute('aria-selected', String(o === opt)));
+        roleSelect.dispatchEvent(new Event('change'));
+        closeMenu();
+      });
+      opt.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opt.click(); }
+        if (e.key === 'Escape') { closeMenu(); roleTrigger.focus(); }
+        const idx = options.indexOf(opt);
+        if (e.key === 'ArrowDown') { e.preventDefault(); (options[idx + 1] || options[0]).focus(); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); (options[idx - 1] || options[options.length - 1]).focus(); }
+      });
+    });
+    document.addEventListener('click', (e) => { if (!roleWrap.contains(e.target)) closeMenu(); });
+    // Sync trigger text with initial value
+    const active = options.find(o => o.getAttribute('data-value') === roleSelect.value) || options[0];
+    if (active) { roleTriggerText.textContent = active.textContent; options.forEach(o => o.setAttribute('aria-selected', String(o === active))); }
   }
 
   // Footer year
