@@ -33,10 +33,39 @@
     }
   };
 
+  let fadeTimer = null;
+  function preloadImage(url, onload) {
+    const img = new Image();
+    img.onload = onload;
+    img.src = url.replace(/^url\(['"]?|['"]?\)$/g, '').replace(/^url\('/, '').replace(/'\)$/, '');
+  }
   function applyRoleVisual(role) {
     const meta = roleMeta[role] || roleMeta.student;
-    if (subtitleEl) subtitleEl.textContent = meta.subtitle;
-    if (authVisual) authVisual.style.setProperty('--auth-visual-bg', meta.bg);
+    if (!authVisual) return;
+
+    // Debounce rapid changes
+    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+
+    // Subtitle fade
+    if (subtitleEl) {
+      subtitleEl.style.opacity = '0';
+      setTimeout(() => {
+        subtitleEl.textContent = meta.subtitle;
+        subtitleEl.style.opacity = '1';
+      }, 120);
+    }
+
+    // Preload image before animating to avoid flicker
+    preloadImage(meta.bg.replace(/^url\(|\)$/g, '').replace(/['"]/g, ''), () => {
+      authVisual.style.setProperty('--auth-visual-bg-next', meta.bg);
+      authVisual.classList.add('fade-in');
+      fadeTimer = setTimeout(() => {
+        authVisual.style.setProperty('--auth-visual-bg', meta.bg);
+        authVisual.style.setProperty('--auth-visual-bg-next', 'none');
+        authVisual.classList.remove('fade-in');
+        fadeTimer = null;
+      }, 360);
+    });
   }
 
   if (roleSelect) {

@@ -27,15 +27,25 @@
 }
 
 * { box-sizing: border-box; }
+html { 
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: inherit;
   color: var(--text);
   background: radial-gradient(1200px 600px at 80% -20%, rgba(74,35,35,.08), transparent 60%),
               radial-gradient(800px 500px at -10% 20%, rgba(245,213,138,.12), transparent 60%),
               var(--bg);
 }
+/* Ensure common UI elements inherit Inter */
+button, input, select, textarea,
+label, a, table, th, td,
+.button, .nav, .brand, .chip { font-family: inherit; }
 
 .container {
   width: min(1100px, calc(100% - 2rem));
@@ -87,7 +97,7 @@ body {
 .brand-text { 
   font-weight: 700; 
   letter-spacing: .2px;
-  color: var(--ala-gold-light);
+  color: var(--ala-gold);
 }
 .nav { 
   display: flex; 
@@ -95,12 +105,12 @@ body {
   gap: 18px; 
 }
 .nav-link { 
-  color: var(--ala-gold-light); 
+  color: var(--ala-gold); 
   text-decoration: none; 
   font-weight: 500; 
 }
 .nav-link:hover { 
-  color: var(--text); 
+  color: white; 
 }
 
 /* Enhanced Form Controls */
@@ -194,7 +204,7 @@ select {
 /* Specific styles for login button */
 .button-login { 
   border: none; 
-  background: var(--ala-gold-light); 
+  background: var(--ala-gold); 
   color: white; 
   box-shadow: var(--shadow-lg); 
 }
@@ -468,11 +478,29 @@ select {
   background-image: var(--auth-visual-bg, url('/static/images/ala.jpeg'));
   background-size: cover;
   background-position: center;
-  filter: blur(8px) saturate(1.05);
-  transform: scale(1.08);
+  filter: blur(6px) saturate(1.05);
+  transform: translateZ(0) scale(1.04);
   opacity: 0.45;
+  will-change: opacity, transform, filter;
 }
+.auth-visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--auth-visual-bg-next, none);
+  background-size: cover;
+  background-position: center;
+  filter: blur(6px) saturate(1.05);
+  transform: translateZ(0) scale(1.04);
+  opacity: 0;
+  transition: opacity .35s ease;
+  will-change: opacity, transform, filter;
+}
+.auth-visual.fade-in::after { opacity: .45; }
 .auth-visual > * { position: relative; z-index: 1; }
+
+/* Subtle subtitle fade when role changes */
+#loginSubtitle { transition: opacity .25s ease; }
 .auth-card { 
   max-width: 420px; 
   width: 100%; 
