@@ -3,3 +3,5 @@ flask>=3.0.0,<4
 supabase==2.20.0
 supabase-auth==2.20.0
 supabase-functions==2.20.0
+dotenv==0.9.9
+python-dotenv==1.1.1
