@@ -270,8 +270,8 @@ select {
 .card.ala-card,
 .card.glass {
   flex: 1;
-  max-width: 1000px;
-  min-width: 500px;
+
+  min-width:400px;
 }
 
 .mock-toolbar { 
@@ -519,9 +519,11 @@ select {
 
 /* ALA themed blocks */
 .ala-card { 
-  background: linear-gradient(135deg, var(--ala-maroon), var(--ala-maroon-600)); 
+  background: linear-gradient(135deg, rgba(74, 35, 35, 0.8),  rgba(50, 20, 20, 0.8)); 
   border: 1px solid rgba(74,35,35,.35); /* Updated to use ALA maroon */
   box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* so that blur effedt is supported in safart */
 }
 .ala-light { 
   background: rgba(255,255,255,0.95); 

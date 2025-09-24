@@ -9,27 +9,27 @@
   const roleMeta = {
     student: {
       subtitle: 'African Leadership Academy • Student Clearance Portal',
-      bg: "url('/static/images/student.jpg')"
+      bg: "url('/static/images/students.jpeg')"
     },
     teacher: {
       subtitle: 'African Leadership Academy • Teacher Clearance Dashboard',
-      bg: "url('/static/images/teacher.jpg')"
+      bg: "url('/static/images/teacher.jpeg')"
     },
     finance: {
       subtitle: 'African Leadership Academy • Finance Clearance Dashboard',
-      bg: "url('/static/images/finance.jpg')"
+      bg: "url('/static/images/finance.jpeg')"
     },
     hall: {
       subtitle: 'African Leadership Academy • Hall Clearance Dashboard',
-      bg: "url('/static/images/hall.jpg')"
+      bg: "url('/static/images/hall.jpeg')"
     },
     coach: {
       subtitle: 'African Leadership Academy • Sports Clearance Dashboard',
-      bg: "url('/static/images/coach.jpg')"
+      bg: "url('/static/images/coach.jpeg')"
     },
     lab: {
       subtitle: 'African Leadership Academy • Labs Clearance Dashboard',
-      bg: "url('/static/images/lab.jpg')"
+      bg: "url('/static/images/lab.jpeg')"
     }
   };
 
