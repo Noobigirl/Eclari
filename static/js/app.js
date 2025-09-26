@@ -2,6 +2,7 @@
 (function(){
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+  
   // Role-based login visual + subtitle
   const roleSelect = $('#role');
   const roleTrigger = $('#roleTrigger');

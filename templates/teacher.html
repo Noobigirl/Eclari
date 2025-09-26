@@ -26,7 +26,7 @@
 
   <main class="container">
     <div class="toolbar">
-      <h1 style="margin:0;">Welcome {{ teacher.first_name }} {{ teacher.last_name }}</h1>
+      <h1 style="margin:0;">Welcome </h1>
       <div style="display:flex; gap:10px;">
         <input class="input" id="teacherSearch" placeholder="Search students…" style="min-width:240px;" />
       </div>
@@ -51,7 +51,7 @@
     <div class="card glass" style="padding:16px; margin-top:16px;">
       <h3 style="margin:0 0 10px;">Digital Signature</h3>
       <div class="stack">
-        <canvas id="sigPad" width="600" height="160" style="background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px;"></canvas>
+        <canvas id="sigPad" width="600" height="160" style="background:rgba(110, 66, 66, 0.695); border:1px solid var(--border); border-radius:10px;"></canvas>
         <div style="display:flex; gap:10px;">
           <button class="button" id="clearSig">Clear</button>
           <button class="button button-primary" id="saveSig">Save Signature</button>
