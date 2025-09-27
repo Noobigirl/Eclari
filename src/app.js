@@ -222,26 +222,7 @@ import {
     });
   }
 
-  // Check for existing session on page load
-  window.addEventListener('DOMContentLoaded', async () => {
-    // Only check session on login page to avoid unnecessary checks
-    if (window.location.pathname === '/login') {
-      const { user, session } = await getCurrentSession();
-      if (user && session) {
-        console.log('Existing session found, redirecting...');
-        const userRole = getUserRole(user);
-        const routes = { 
-          student: '/dashboard/student', 
-          teacher: '/dashboard/teacher', 
-          finance: '/dashboard/finance', 
-          hall: '/dashboard/hall', 
-          coach: '/dashboard/coach', 
-          lab: '/dashboard/lab' 
-        };
-        window.location.href = routes[userRole] || '/dashboard/student';
-      }
-    }
-  });
+  // Session check is now handled server-side to prevent flashing
 
   // Add logout functionality for dashboard pages
   const logoutBtn = $('#logoutBtn');

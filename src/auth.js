@@ -5,7 +5,13 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = window.SUPABASE_URL || 'YOUR_SUPABASE_URL'
 const supabaseAnonKey = window.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
 
 /**
  * Sign in with email and password
@@ -87,8 +93,9 @@ export function getUserRole(user) {
  */
 export function storeSessionForFlask(session) {
   if (session?.access_token) {
-    // Set httpOnly=false so we can access it from JS, but secure in production
-    document.cookie = `supabase-token=${session.access_token}; path=/; SameSite=Lax; max-age=3600`
+    // Set cookie for 2 weeks (1209600 seconds = 14 days)
+    const twoWeeksInSeconds = 14 * 24 * 60 * 60;
+    document.cookie = `supabase-token=${session.access_token}; path=/; SameSite=Lax; max-age=${twoWeeksInSeconds}`
     
     // Also store user info for quick access
     const userInfo = {
@@ -97,7 +104,7 @@ export function storeSessionForFlask(session) {
       role: getUserRole(session.user)
     }
     
-    document.cookie = `user-info=${JSON.stringify(userInfo)}; path=/; SameSite=Lax; max-age=3600`
+    document.cookie = `user-info=${JSON.stringify(userInfo)}; path=/; SameSite=Lax; max-age=${twoWeeksInSeconds}`
   }
 }
 

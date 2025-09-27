@@ -117,11 +117,20 @@ def create_app() -> Flask:
             try:
                 response = supabase.auth.get_user(token)
                 if response.user:
-                    # User is already logged in, redirect to dashboard
-                    role = response.user.raw_user_meta_data.get('role', 'student') if response.user.raw_user_meta_data else 'student'
-                    return redirect(url_for('dashboard', role=role))
-            except Exception:
-                pass  # Token is invalid, continue to login page
+                    # User is already logged in, get their actual role from database
+                    auth_uid = response.user.id
+                    user_data = get_user_data_by_auth_uid(auth_uid)
+                    
+                    if user_data:
+                        # Redirect to their proper dashboard
+                        return redirect(url_for('dashboard', role=user_data['role']))
+            except Exception as e:
+                print(f"Login redirect error: {e}")
+                # Clear invalid token
+                response = redirect(url_for('login'))
+                response.set_cookie('supabase-token', '', expires=0, path='/')
+                response.set_cookie('user-info', '', expires=0, path='/')
+                return response
         
         return render_template("login.html", 
                              supabase_url=supabase_url, 
@@ -150,7 +159,9 @@ def create_app() -> Flask:
         }
         
         template = template_map.get(role, 'student.html')
-        return render_template(template, user=user)
+        return render_template(template, user=user, 
+                             supabase_url=supabase_url, 
+                             supabase_anon_key=supabase_anon_key)
 
     @app.route("/logout")
     def logout():
@@ -197,7 +208,10 @@ def create_app() -> Flask:
     @app.route("/subject")
     @verify_supabase_token
     def subject():
-        return render_template("subject.html")
+        user = session.get('user', {})
+        return render_template("subject.html", user=user,
+                             supabase_url=supabase_url, 
+                             supabase_anon_key=supabase_anon_key)
 
     return app
 
