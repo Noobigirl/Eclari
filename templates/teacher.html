@@ -19,7 +19,7 @@
       </a>
       <nav class="nav">
         <span class="chip">Teacher</span>
-        <a class="button" href="{{ url_for('login') }}">Sign out</a>
+        <button id="logoutBtn" class="button">Sign out</button>
       </nav>
     </div>
   </header>
@@ -60,7 +60,7 @@
     </div>
   </main>
 
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>
 </body>
 </html>
 

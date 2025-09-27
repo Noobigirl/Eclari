@@ -64,8 +64,8 @@
             </div>
           </div>
           <div class="input-group">
-            <label id="id-label" for="id">ALA ID</label>
-            <input class="input" id="id" placeholder="e.g. ALA21-001" />
+            <label id="id-label" for="id">Email</label>
+            <input class="input" id="id" type="email" placeholder="e.g. student@ala.edu" />
           </div>
           <div class="input-group">
             <label for="password">Password</label>
@@ -78,7 +78,15 @@
     </div>
   </main>
 
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <!-- Supabase Configuration -->
+  <script>
+    // Make Supabase config available globally for the auth module
+    window.SUPABASE_URL = "{{ supabase_url }}";
+    window.SUPABASE_ANON_KEY = "{{ supabase_anon_key }}";
+  </script>
+  
+  <!-- Bundled JavaScript with Supabase authentication -->
+  <script type="module" src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>
 </body>
 </html>
 

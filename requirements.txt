@@ -1,7 +1,14 @@
+# Core Flask
 flask>=3.0.0,<4
 
+# Supabase integration
 supabase==2.20.0
-supabase-auth==2.20.0
-supabase-functions==2.20.0
-dotenv==0.9.9
+
+# Environment variables
 python-dotenv==1.1.1
+
+# JWT handling
+PyJWT==2.10.1
+
+# Additional utilities
+requests>=2.31.0
