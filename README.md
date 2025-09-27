@@ -110,7 +110,7 @@ python app.py
 
 ## 🔐 Authentication Flow
 
-1. **User Login**: Users enter ALA ID and password on `/login`
+1. **User Login**: Users enter ALA email and password on `/login`
 2. **Supabase Auth**: JavaScript calls Supabase to authenticate
 3. **Session Storage**: JWT token stored in cookies for Flask
 4. **Route Protection**: Flask verifies tokens on protected routes

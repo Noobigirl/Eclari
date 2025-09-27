@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html      <a class="brand" href="{{ url_for('home') }}">
+        <img class="brand-mark" src="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}" alt="Eclari Logo">
+        <span class="brand-text">Eclari</span>
+      </a>g="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon_io/favicon-16x16.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/favicon_io/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='images/favicon_io/site.webmanifest') }}">
 </head>
 <body>
   <header class="site-header">

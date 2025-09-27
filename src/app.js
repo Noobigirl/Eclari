@@ -306,11 +306,74 @@ import {
 
     // Populate upload subject select
     const subjectSelect = $('#subjectSelect');
-    if (subjectSelect) {
+    const subjectTrigger = $('#subjectTrigger');
+    const subjectTriggerText = $('#subjectTriggerText');
+    const subjectMenu = $('#subjectMenu');
+    const subjectWrap = $('#subjectSelectWrap');
+    
+    if (subjectSelect && subjectMenu) {
       subjects.forEach(r => {
+        // Add to hidden select for form submission
         const opt = document.createElement('option');
-        opt.value = r.id; opt.textContent = r.label; subjectSelect.appendChild(opt);
+        opt.value = r.id; opt.textContent = r.label; 
+        subjectSelect.appendChild(opt);
+        
+        // Add to custom dropdown menu
+        const menuOption = document.createElement('div');
+        menuOption.className = 'select-option';
+        menuOption.setAttribute('role', 'option');
+        menuOption.setAttribute('data-value', r.id);
+        menuOption.setAttribute('tabindex', '0');
+        menuOption.textContent = r.label;
+        subjectMenu.appendChild(menuOption);
       });
+      
+      // Set up custom dropdown functionality for subject select
+      if (subjectTrigger && subjectWrap && subjectTriggerText) {
+        const options = Array.from(subjectMenu.querySelectorAll('.select-option'));
+        
+        function closeSubjectMenu() {
+          subjectWrap.classList.remove('select-open');
+          subjectTrigger.setAttribute('aria-expanded', 'false');
+        }
+        
+        function openSubjectMenu() {
+          subjectWrap.classList.add('select-open');
+          subjectTrigger.setAttribute('aria-expanded', 'true');
+        }
+        
+        subjectTrigger.addEventListener('click', () => {
+          const isOpen = subjectWrap.classList.contains('select-open');
+          isOpen ? closeSubjectMenu() : openSubjectMenu();
+        });
+        
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            const value = opt.getAttribute('data-value');
+            subjectSelect.value = value;
+            subjectTriggerText.textContent = opt.textContent;
+            options.forEach(o => o.setAttribute('aria-selected', String(o === opt)));
+            closeSubjectMenu();
+          });
+          
+          opt.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opt.click(); }
+            if (e.key === 'Escape') { closeSubjectMenu(); subjectTrigger.focus(); }
+            const idx = options.indexOf(opt);
+            if (e.key === 'ArrowDown') { e.preventDefault(); (options[idx + 1] || options[0]).focus(); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); (options[idx - 1] || options[options.length - 1]).focus(); }
+          });
+        });
+        
+        document.addEventListener('click', (e) => { if (!subjectWrap.contains(e.target)) closeSubjectMenu(); });
+        
+        // Set first option as default if any options exist
+        if (options.length > 0) {
+          subjectSelect.value = options[0].getAttribute('data-value');
+          subjectTriggerText.textContent = options[0].textContent;
+          options[0].setAttribute('aria-selected', 'true');
+        }
+      }
     }
     $('#uploadBtn')?.addEventListener('click', () => {
       const code = $('#itemCode').value.trim(); const file = $('#photo').files[0]; const res = $('#uploadResult');

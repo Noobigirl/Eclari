@@ -91,8 +91,7 @@ label, a, table, th, td,
   border-radius: 10px;
   color: #fff; 
   font-weight: 800;
-  background: var(--ala-maroon);
-  box-shadow: 0 8px 24px rgba(74,35,35,.25); /* Updated to use ALA maroon */
+  /* Removed background and box-shadow for image logo */
 }
 .brand-text { 
   font-weight: 700; 
