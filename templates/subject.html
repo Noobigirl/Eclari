@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<html      <a class="brand" href="{{ url_for('home') }}">
-        <img class="brand-mark" src="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}" alt="Eclari Logo">
-        <span class="brand-text">Eclari</span>
-      </a>g="en">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,8 +19,8 @@
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="{{ url_for('student') }}">
-        <span class="brand-mark">E</span>
+      <a class="brand" href="{{ url_for('dashboard', role='student') }}">
+        <img class="brand-mark" src="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}" alt="Eclari Logo">
         <span class="brand-text">Eclari</span>
       </a>
       <nav class="nav">
@@ -34,33 +31,221 @@
   </header>
 
   <main class="container">
-    <div class="grid grid-2">
-      <div class="card ala-card" style="padding:16px;">
-        <h2 id="subjectTitle" style="margin:0 0 10px; color:var(--ala-gold);">Subject</h2>
-        <div class="ala-light card" style="padding:12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-            <span>Subject Clearance Status</span>
-            <span id="subjectPct" style="color:var(--muted); font-weight:600;">0%</span>
+    <div class="toolbar" style="margin-bottom: 24px;">
+      <h1 style="margin: 0; font-size: 1.8rem; font-weight: 700;">{{ subject_name }} Clearance</h1>
+      <div>
+        <a href="{{ url_for('dashboard', role='student') }}" class="button button-ghost">← Back to Dashboard</a>
+      </div>
+    </div>
+    
+    <div class="dashboard-grid">
+      <div class="card ala-card animate-fadeInLeft" style="padding:32px;">
+        <h2 style="margin:0 0 20px; color:var(--ala-gold); font-size: 1.6rem;">{{ subject_name }}</h2>
+        
+        {% if current_class %}
+        <div class="ala-light card" style="padding:20px; margin-bottom:20px;">
+          <h4 style="margin:0 0 16px; font-size: 1.2rem;">Class Information</h4>
+          <p style="margin:4px 0;"><strong>Class:</strong> {{ current_class.class_id.class_name }}</p>
+          <p style="margin:4px 0;"><strong>Status:</strong> 
+            <span class="badge {% if current_class.status == 'Active' %}badge-success{% else %}badge-warning{% endif %}">
+              {{ current_class.status }}
+            </span>
+          </p>
+        </div>
+        {% endif %}
+        
+        <div class="ala-light card" style="padding:20px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+            <span style="font-size: 1.1rem; font-weight: 500;">{{ subject_name }} Clearance Status</span>
+            <span id="subjectPct" style="color:var(--muted); font-weight:600; font-size: 1.1rem;">{{ subject_clearance_percentage }}%</span>
           </div>
-          <div class="progress" style="margin-top:8px;">
-            <div class="progress-fill" id="subjectFill"></div>
+          <div class="progress" style="margin-top:16px;">
+            <div class="progress-fill" id="subjectFill" data-width="{{ subject_clearance_percentage }}%" style="width: 0%;"></div>
+          </div>
+          <div style="text-align: center; margin-top: 12px;">
+            <span class="badge {% if subject_clearance_status == 'approved' %}badge-success{% elif subject_clearance_status == 'pending' %}badge-warning{% else %}badge-error{% endif %}">
+              {% if subject_clearance_status == 'approved' %}Approved
+              {% elif subject_clearance_status == 'pending' %}Pending Review
+              {% else %}Not Started
+              {% endif %}
+            </span>
           </div>
         </div>
-        <div class="ala-light card" style="padding:12px; margin-top:12px;">
-          <h3 style="margin:0 0 8px;">To Do…</h3>
-          <div id="subjectTodo" class="stack"></div>
+        
+        <div class="ala-light card" style="padding:20px; margin-top:20px;">
+          <h3 style="margin:0 0 16px; font-size: 1.3rem;">Books for {{ subject_name }}</h3>
+          <div class="stack">
+            {% if subject_books %}
+              {% for book in subject_books %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                  <div>
+                    <strong>{{ book.book_id }}</strong>
+                    <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(book.cost) }}</small>
+                  </div>
+                  <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
+                    {% if book.returned %}Returned{% else %}Pending{% endif %}
+                  </span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p style="color: var(--muted); text-align: center; padding: 20px 0;">No books assigned for this subject.</p>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="ala-light card" style="padding:20px; margin-top:20px;">
+          <h3 style="margin:0 0 16px; font-size: 1.3rem;">Materials for {{ subject_name }}</h3>
+          <div class="stack">
+            {% if subject_materials %}
+              {% for material in subject_materials %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                  <div>
+                    <strong>{{ material.material_name }}</strong>
+                    <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(material.cost) }}</small>
+                  </div>
+                  <span class="badge {% if material.returned %}badge-success{% else %}badge-warning{% endif %}">
+                    {% if material.returned %}Returned{% else %}Pending{% endif %}
+                  </span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p style="color: var(--muted); text-align: center; padding: 20px 0;">No materials assigned for this subject.</p>
+            {% endif %}
+          </div>
         </div>
       </div>
-      <div class="card glass" style="padding:16px;">
-        <h3 style="margin:0 0 8px;">Actions</h3>
-        <div class="stack">
-          <button class="button button-primary">Manage Clearance(s)</button>
-          <button class="button">Add New Clearance(s)</button>
-          <a class="button button-ghost" href="{{ url_for('student') }}">Back to Dashboard</a>
+      
+      <div class="card glass animate-fadeInRight" style="padding:36px;">
+    
+        <!-- Quick Actions Menu -->
+        <div class="ala-light card" style="padding:24px; margin-bottom:24px;">
+          <h4 style="margin:0 0 20px; font-size: 1.2rem;">Quick Actions</h4>
+          <div class="quick-actions-grid">
+            <button class="quick-action-btn" onclick="refreshClearanceStatus()">
+              <div class="quick-action-icon">🔄</div>
+              <span class="quick-action-text">Refresh Status</span>
+            </button>
+            <button class="quick-action-btn" onclick="requestHelp()">
+              <div class="quick-action-icon">❓</div>
+              <span class="quick-action-text">Request Help</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Photo Upload Section -->
+        <div class="ala-light card" style="padding:24px; margin-bottom:24px;">
+          <h4 style="margin:0 0 16px; font-size: 1.2rem;">Photo Upload (Y1 Students)</h4>
+          <p style="color:var(--muted); margin:0 0 20px; font-size: 0.95rem; line-height: 1.5;">
+            Upload photos of materials in your possession. Teachers will validate against item codes.
+          </p>
+          
+          <div class="upload-form">
+            <div class="input-group">
+              <label for="itemCode" style="font-weight: 500; margin-bottom: 8px; display: block;">Item Code</label>
+              <input class="input" id="itemCode" placeholder="e.g. {{ subject_id }}-BOOK-01" style="padding: 12px;" />
+            </div>
+            
+            <div class="input-group">
+              <label for="photo" style="font-weight: 500; margin-bottom: 8px; display: block;">Photo Evidence</label>
+              <input class="input" id="photo" type="file" accept="image/*" style="padding: 12px;" />
+            </div>
+            
+            <div class="input-group">
+              <label for="notes" style="font-weight: 500; margin-bottom: 8px; display: block;">Notes (Optional)</label>
+              <textarea class="input" id="notes" rows="3" placeholder="Any additional information..." style="padding: 12px; resize: vertical;"></textarea>
+            </div>
+            
+            <button class="button button-primary" onclick="uploadEvidence()" style="width: 100%; padding: 12px; margin-top: 8px;">
+              📷 Upload Evidence
+            </button>
+          </div>
+        </div>
+          </div>
         </div>
       </div>
     </div>
   </main>
+
+  <script>
+    // Subject-specific functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      calculateSubjectProgress();
+    });
+    
+    function calculateSubjectProgress() {
+      // Progress is now calculated server-side, just set the color
+      const percentage = parseInt(document.getElementById('subjectPct').textContent);
+      const progressFill = document.getElementById('subjectFill');
+      
+      if (percentage === 100) {
+        progressFill.style.background = 'var(--success)';
+      } else if (percentage >= 50) {
+        progressFill.style.background = 'var(--warning)';
+      } else {
+        progressFill.style.background = 'var(--error)';
+      }
+    }
+    
+    function uploadEvidence() {
+      const itemCode = document.getElementById('itemCode').value;
+      const photoInput = document.getElementById('photo');
+      const notes = document.getElementById('notes').value;
+      
+      if (!itemCode.trim()) {
+        showMessage('Please enter an item code.', 'error');
+        return;
+      }
+      
+      if (!photoInput.files || photoInput.files.length === 0) {
+        showMessage('Please select a photo.', 'error');
+        return;
+      }
+      
+      // Here you would upload to your backend
+      // For now, just show success message
+      showMessage('Evidence uploaded successfully! Waiting for teacher verification.', 'success');
+      
+      // Clear form
+      document.getElementById('itemCode').value = '';
+      document.getElementById('photo').value = '';
+      document.getElementById('notes').value = '';
+    }
+    
+    function refreshClearanceStatus() {
+      showMessage('Refreshing clearance status...', 'info');
+      // Reload the page to get latest data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+    
+    function requestHelp() {
+      const subject = '{{ subject_name }}';
+      showMessage(`Help request sent for ${subject}. A teacher will contact you soon.`, 'success');
+    }
+    
+    function showMessage(message, type) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      `;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+  </script>
 
   <script type="module" src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>
 </body>

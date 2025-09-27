@@ -30,61 +30,156 @@
     </div>
   </header>
 
-  <main class="dashboard-container">
-    <div class="grid grid-2">
-      <div class="card ala-card" style="padding:16px;">
-        <h2 style="margin:0 0 10px; color:var(--ala-gold);">Welcome, {{ user.first_name }}!</h2>
-        <div class="ala-light card" style="padding:12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-            <span>Total Clearance Status</span>
-            <span id="overallPct" style="color:var(--muted); font-weight:600;">0%</span>
+  <main class="container">
+    <div class="dashboard-grid">
+      <div class="card ala-card animate-fadeInLeft" style="padding:32px;">
+        <h2 style="margin:0 0 20px; color:var(--ala-gold); font-size: 1.6rem;">Welcome, {{ user.first_name }}!</h2>
+        <div class="ala-light card" style="padding:24px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+            <span style="font-size: 1.2rem; font-weight: 500;">Total Clearance Status</span>
+            <span id="overallPct" style="color:var(--muted); font-weight:600; font-size: 1.2rem;">{{ overall_clearance_percentage }}%</span>
           </div>
-          <div class="progress" style="margin-top:8px;">
-            <div class="progress-fill" id="overallFill"></div>
+          <div class="progress" style="margin-top:16px;">
+            <div class="progress-fill" id="overallFill" data-width="{{ overall_clearance_percentage }}%" style="width: 0%;"></div>
+          </div>
+          <div style="text-align: center; margin-top: 12px;">
+            <span class="badge {% if overall_clearance_status == 'approved' %}badge-success{% elif overall_clearance_status == 'pending' %}badge-warning{% else %}badge-error{% endif %}">
+              {% if overall_clearance_status == 'approved' %}Approved
+              {% elif overall_clearance_status == 'pending' %}Pending Review
+              {% else %}Not Started
+              {% endif %}
+            </span>
           </div>
         </div>
-        <div class="ala-light card" style="padding:12px; margin-top:12px;">
-          <h3 style="margin:0 0 8px;">To Do</h3>
-          <div id="todoList" class="stack"></div>
+        
+        <div class="ala-light card" style="padding:24px; margin-top:20px;">
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Books to Return</h3>
+          <div class="stack">
+            {% if student_books %}
+              {% for book in student_books %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+                  <div>
+                    <strong>{{ book.book_id }}</strong> - {{ book.subject_id.subject_name }}
+                    <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(book.cost) }}</small>
+                  </div>
+                  <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
+                    {% if book.returned %}Returned{% else %}Pending{% endif %}
+                  </span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p style="color: var(--muted); text-align: center; padding: 20px 0;">No books assigned.</p>
+            {% endif %}
+          </div>
         </div>
+        
+        <div class="ala-light card" style="padding:24px; margin-top:20px;">
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Materials to Return</h3>
+          <div class="stack">
+            {% if student_materials %}
+              {% for material in student_materials %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+                  <div>
+                    <strong>{{ material.material_name }}</strong> - {{ material.subject_id }}
+                    <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(material.cost) }}</small>
+                  </div>
+                  <span class="badge {% if material.returned %}badge-success{% else %}badge-warning{% endif %}">
+                    {% if material.returned %}Returned{% else %}Pending{% endif %}
+                  </span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p style="color: var(--muted); text-align: center; padding: 20px 0;">No materials assigned.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if room_assignment %}
+        <div class="ala-light card" style="padding:24px; margin-top:20px;" data-type="room">
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Room Assignment</h3>
+          <div style="padding: 8px 0;">
+            <strong>Room {{ room_assignment.room_id }}</strong>
+            <br><small style="color: var(--muted);">{{ room_assignment.hall_id.hall_name }}</small>
+            <br><small style="color: var(--muted);">Hall Head: {{ room_assignment.hall_id.first_name }} {{ room_assignment.hall_id.last_name }}</small>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if financial_overview %}
+        <div class="ala-light card" style="padding:24px; margin-top:20px;" data-type="financial">
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Financial Status</h3>
+          <div class="stack">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Tuition Due:</span>
+              <span>${{ "%.2f"|format(financial_overview.tuition_due) }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Amount Paid:</span>
+              <span>${{ "%.2f"|format(financial_overview.amount_paid) }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+              <span>Balance:</span>
+              <!-- <span {% if financial_overview.balance > 0 %}style="color: var(--error);"{% endif %}>${{ "%.2f"|format(financial_overview.balance) }}</span> -->
+            </div>
+            <div style="text-align: center; margin-top: 8px;">
+              <span class="badge {% if financial_overview.status == 'Paid' %}badge-success{% elif financial_overview.status == 'Partial' %}badge-warning{% else %}badge-error{% endif %}">
+                {{ financial_overview.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
       </div>
 
-      <div class="card glass" style="padding:16px;">
-        <h3 style="margin:0 0 8px;">Your Portals</h3>
-        <div id="portals" class="portals"></div>
-        <div class="ala-light card" style="padding:12px; margin-top:12px;">
-          <h3 style="margin:0 0 8px;">Uploads (Y1)</h3>
-          <p style="color:var(--muted); margin:0 0 8px;">Upload photos of materials in your possession. Teachers will validate against item codes.</p>
-          <div class="stack">
-            <div class="input-group">
-              <label for="subjectSelect">Subject/Department</label>
-              <div class="select-wrap" id="subjectSelectWrap">
-                <select id="subjectSelect" class="select-hidden" aria-label="Subject/Department">
-                </select>
-                <button type="button" class="select-trigger" id="subjectTrigger" aria-haspopup="listbox" aria-expanded="false">
-                  <span id="subjectTriggerText">Select Subject</span>
-                  <span class="select-caret"></span>
-                </button>
-                <div class="select-menu" id="subjectMenu" role="listbox" aria-labelledby="subjectTrigger">
-                  <!-- Options will be populated by JavaScript -->
+      <div class="card glass animate-fadeInRight" style="padding:36px;">
+        <h3 style="margin:0 0 28px; font-size: 1.5rem; font-weight: 700;">Your Subject Portals</h3>
+        <div class="subject-cards-grid">
+          {% if student_classes %}
+            {% for enrollment in student_classes %}
+              <div class="subject-card" 
+                   onclick="goToSubject('{{ enrollment.class_id.subject_id.subject_id }}', '{{ enrollment.class_id.subject_id.subject_name }}')"
+                   style="cursor: pointer;"
+                   data-subject="{{ enrollment.class_id.subject_id.subject_id }}">
+                <div class="subject-card-banner" data-subject="{{ enrollment.class_id.subject_id.subject_id }}"></div>
+                <div class="subject-card-header">
+                  <span class="badge {% if enrollment.clearance_status == 'approved' %}badge-success{% elif enrollment.clearance_status == 'pending' %}badge-warning{% else %}badge-error{% endif %}">
+                    {% if enrollment.clearance_status == 'approved' %}Approved
+                    {% elif enrollment.clearance_status == 'pending' %}Pending
+                    {% else %}Not Started
+                    {% endif %}
+                  </span>
+                </div>
+                <div class="subject-card-content">
+                  <h4 class="subject-title">{{ enrollment.class_id.subject_id.subject_name }}</h4>
+                  <p class="subject-class">{{ enrollment.class_id.class_name }}</p>
+                  <div class="clearance-progress" style="margin: 12px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 0.85rem; color: var(--muted);">Clearance Progress</span>
+                      <span style="font-size: 0.85rem; font-weight: 600; color: var(--text);">{{ enrollment.clearance_percentage }}%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-fill" data-width="{{ enrollment.clearance_percentage }}%" style="width: 0%;"></div>
+                    </div>
+                  </div>
+                  <div class="subject-card-footer">
+                    <span class="view-details">View Details →</span>
+                  </div>
                 </div>
               </div>
+            {% endfor %}
+          {% else %}
+            <div class="no-subjects-placeholder">
+              <div class="placeholder-icon">📖</div>
+              <h4>No Classes Assigned</h4>
+              <p>Check with your academic advisor for class enrollment.</p>
             </div>
-            <div class="input-group">
-              <label for="itemCode">Item code</label>
-              <input class="input" id="itemCode" placeholder="e.g. MATH-BOOK-12" />
-            </div>
-            <div class="input-group">
-              <label for="photo">Photo</label>
-              <input class="input" id="photo" type="file" accept="image/*" />
-            </div>
-            <button id="uploadBtn" class="button button-primary">Upload</button>
-            <div id="uploadResult" style="color:var(--muted);"></div>
-          </div>
+          {% endif %}
         </div>
-        <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-          <span id="overallStatus" class="badge">Overall: Pending</span>
-          <button class="button button-primary" id="exportBtn">Export Clearance</button>
+        
+        <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin-top:20px;">
+          <button class="button button-primary" id="exportBtn" onclick="exportOverallClearance()">
+            Export Clearance
+          </button>
         </div>
       </div>
     </div>
@@ -94,6 +189,84 @@
   <script>
     window.SUPABASE_URL = "{{ supabase_url }}";
     window.SUPABASE_ANON_KEY = "{{ supabase_anon_key }}";
+    
+    // Student dashboard functionality
+    function goToSubject(subjectId, subjectName) {
+      // Navigate to dedicated subject clearance page
+      window.location.href = `/subject/${subjectId}?name=${encodeURIComponent(subjectName)}`;
+    }
+    
+    function scrollToPortals() {
+      document.getElementById('portals').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function showFinancialSummary() {
+      // Toggle financial info visibility
+      const financialCard = document.querySelector('.ala-light.card:has([data-type="financial"])');
+      if (financialCard) {
+        financialCard.scrollIntoView({ behavior: 'smooth' });
+        financialCard.style.outline = '2px solid var(--ala-gold)';
+        setTimeout(() => {
+          financialCard.style.outline = 'none';
+        }, 2000);
+      }
+    }
+    
+    function showRoomInfo() {
+      // Toggle room info visibility
+      const roomCard = document.querySelector('.ala-light.card:has([data-type="room"])');
+      if (roomCard) {
+        roomCard.scrollIntoView({ behavior: 'smooth' });
+        roomCard.style.outline = '2px solid var(--ala-gold)';
+        setTimeout(() => {
+          roomCard.style.outline = 'none';
+        }, 2000);
+      }
+    }
+    
+    // Set progress bar colors based on percentage (server-calculated)
+    document.addEventListener('DOMContentLoaded', function() {
+      setProgressBarColors();
+    });
+    
+    function setProgressBarColors() {
+      const overallPct = parseInt(document.getElementById('overallPct').textContent);
+      const progressFill = document.getElementById('overallFill');
+      
+      if (overallPct === 100) {
+        progressFill.style.background = 'var(--success)';
+      } else if (overallPct >= 50) {
+        progressFill.style.background = 'var(--warning)';
+      } else {
+        progressFill.style.background = 'var(--error)';
+      }
+      
+      // Set colors for subject progress bars too
+      const subjectProgressBars = document.querySelectorAll('.clearance-progress .progress-fill');
+      subjectProgressBars.forEach(bar => {
+        const width = parseInt(bar.style.width);
+        if (width === 100) {
+          bar.style.background = 'var(--success)';
+        } else if (width >= 50) {
+          bar.style.background = 'var(--warning)';
+        } else {
+          bar.style.background = 'var(--error)';
+        }
+      });
+    }
+    
+    function exportOverallClearance() {
+      const totalItems = document.querySelectorAll('.badge').length;
+      const returnedItems = document.querySelectorAll('.badge-success').length;
+      const percentage = totalItems > 0 ? Math.round((returnedItems / totalItems) * 100) : 100;
+      
+      if (percentage === 100) {
+        alert('Generating complete clearance certificate...');
+        // Here you would generate the PDF
+      } else {
+        alert(`Cannot export clearance. Only ${percentage}% complete. Please return all outstanding items.`);
+      }
+    }
   </script>
   
   <script type="module" src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>

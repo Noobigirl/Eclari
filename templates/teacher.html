@@ -39,20 +39,97 @@
       </div>
     </div>
 
+    <div class="grid grid-2" style="gap: 16px; margin-bottom: 20px;">
+      <div class="card glass" style="padding:16px;">
+        <h3 style="margin:0 0 16px;">Your Classes</h3>
+        {% if teacher_classes %}
+          {% for class in teacher_classes %}
+            <div class="ala-light card" style="padding:12px; margin-bottom:12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="margin: 0;">{{ class.class_name }}</h4>
+                <span class="badge badge-success">{{ class.subject_id.subject_name }}</span>
+              </div>
+              <p style="margin: 4px 0; color: var(--muted);">Students enrolled: {{ class.students|length if class.students else 0 }}</p>
+              <details style="margin-top: 8px;">
+                <summary style="cursor: pointer; color: var(--ala-gold);">View Students</summary>
+                <div style="margin-top: 8px;">
+                  {% if class.students %}
+                    {% for enrollment in class.students %}
+                      <div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <strong>{{ enrollment.student_id.first_name }} {{ enrollment.student_id.last_name }}</strong>
+                        <span style="color: var(--muted); margin-left: 8px;">Year {{ enrollment.student_id.year_group }}</span>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <p style="color: var(--muted); font-style: italic;">No students enrolled yet.</p>
+                  {% endif %}
+                </div>
+              </details>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p style="color: var(--muted); text-align: center; padding: 20px 0;">No classes assigned yet.</p>
+        {% endif %}
+      </div>
+      
+      <div class="card glass" style="padding:16px;">
+        <h3 style="margin:0 0 16px;">Subject Overview</h3>
+        {% if all_subjects %}
+          {% for subject in all_subjects %}
+            <div style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <strong>{{ subject.subject_name }}</strong> ({{ subject.subject_id }})
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
     <div class="card glass" style="padding:16px;">
-      <table class="table" id="teacherTable">
-        <thead>
-          <tr>
-            <th>Class</th>
-            <th>Student</th>
-            <th>Subject</th>
-            <th>Item</th>
-            <th>Returned</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <h3 style="margin:0 0 16px;">Books & Materials Verification</h3>
+      {% if teacher_classes %}
+        {% for class in teacher_classes %}
+          {% if class.books %}
+            <div class="ala-light card" style="padding:12px; margin-bottom:12px;">
+              <h4 style="margin: 0 0 8px;">{{ class.subject_id.subject_name }} Books</h4>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Book ID</th>
+                    <th>Student</th>
+                    <th>Cost</th>
+                    <th>Returned</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for book in class.books %}
+                    <tr>
+                      <td>{{ book.book_id }}</td>
+                      <td>{{ book.student_id.first_name }} {{ book.student_id.last_name }}</td>
+                      <td>${{ "%.2f"|format(book.cost) }}</td>
+                      <td>
+                        <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
+                          {% if book.returned %}Yes{% else %}No{% endif %}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="button button-sm toggle-return-btn" 
+                                data-type="book" 
+                                data-id="{{ book.book_id }}" 
+                                data-returned="{{ book.returned|lower }}">
+                          {% if book.returned %}Mark Not Returned{% else %}Mark Returned{% endif %}
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <p style="color: var(--muted); text-align: center; padding: 20px 0;">No books to verify.</p>
+      {% endif %}
     </div>
 
     <div class="card glass" style="padding:16px; margin-top:16px;">
@@ -71,6 +148,92 @@
   <script>
     window.SUPABASE_URL = "{{ supabase_url }}";
     window.SUPABASE_ANON_KEY = "{{ supabase_anon_key }}";
+    
+    // Teacher dashboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      // Handle return status toggle buttons
+      document.querySelectorAll('.toggle-return-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+          const type = this.dataset.type; // 'book' or 'material'
+          const id = this.dataset.id;
+          const currentlyReturned = this.dataset.returned === 'true';
+          const newReturnedStatus = !currentlyReturned;
+          
+          try {
+            const response = await fetch(`/api/update/${type}/${id}/return`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                returned: newReturnedStatus
+              })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+              // Update button and badge
+              this.dataset.returned = newReturnedStatus.toString();
+              this.textContent = newReturnedStatus ? 'Mark Not Returned' : 'Mark Returned';
+              
+              // Update badge
+              const badge = this.closest('tr').querySelector('.badge');
+              badge.className = `badge ${newReturnedStatus ? 'badge-success' : 'badge-warning'}`;
+              badge.textContent = newReturnedStatus ? 'Yes' : 'No';
+              
+              // Show success message
+              showMessage('Status updated successfully!', 'success');
+            } else {
+              showMessage('Failed to update status: ' + result.message, 'error');
+            }
+          } catch (error) {
+            console.error('Error updating status:', error);
+            showMessage('An error occurred while updating status.', 'error');
+          }
+        });
+      });
+      
+      // Search functionality
+      const searchInput = document.getElementById('teacherSearch');
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          const searchTerm = this.value.toLowerCase();
+          const rows = document.querySelectorAll('tbody tr');
+          
+          rows.forEach(row => {
+            const studentCell = row.cells[1]; // Student name column
+            if (studentCell) {
+              const studentName = studentCell.textContent.toLowerCase();
+              row.style.display = studentName.includes(searchTerm) ? '' : 'none';
+            }
+          });
+        });
+      }
+    });
+    
+    function showMessage(message, type) {
+      // Create a simple toast notification
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        background: ${type === 'success' ? '#22c55e' : '#ef4444'};
+      `;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
   </script>
   
   <script type="module" src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>

@@ -1,7 +1,315 @@
-// Minimal interactivity with mock data to demonstrate flows
+// Modern interactivity with animations
 (function(){
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+  
+  // Add smooth scrolling
+  document.documentElement.style.scrollBehavior = 'smooth';
+  
+  // Intersection Observer for scroll animations
+  const observeElements = () => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fadeInUp');
+        }
+      });
+    }, { 
+      threshold: 0.1,
+      rootMargin: '50px'
+    });
+    
+    // Observe all cards and important elements
+    $$('.card, .subject-card, .portal-card, .quick-action-item').forEach(el => {
+      observer.observe(el);
+    });
+  };
+  
+  // Staggered animations for grid items
+  const addStaggeredAnimations = () => {
+    $$('.subject-card, .portal-card').forEach((card, index) => {
+      card.classList.add(`stagger-${(index % 5) + 1}`);
+      card.classList.add('animate-fadeInUp');
+    });
+  };
+  
+  // Loading animation
+  const initLoadingAnimation = () => {
+    // Add loading screen
+    const loadingScreen = document.createElement('div');
+    loadingScreen.className = 'loading-screen';
+    loadingScreen.innerHTML = `
+      <div class="loading-content">
+        <img src="/static/images/favicon_io/favicon-32x32.png" alt="Eclari" class="loading-logo">
+        <div class="loading-text">Eclari</div>
+        <div class="loading-progress">
+          <div class="loading-bar"></div>
+        </div>
+      </div>
+    `;
+    
+    // Add loading screen styles
+    const loadingStyles = document.createElement('style');
+    loadingStyles.textContent = `
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--ala-maroon), var(--ala-gold));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      .loading-content {
+        text-align: center;
+        color: white;
+      }
+      .loading-logo {
+        width: 48px;
+        height: 48px;
+        animation: pulse 1.5s ease-in-out infinite;
+        margin-bottom: 16px;
+      }
+      .loading-text {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 24px;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .loading-progress {
+        width: 200px;
+        height: 4px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 2px;
+        overflow: hidden;
+        margin: 0 auto;
+      }
+      .loading-bar {
+        height: 100%;
+        background: white;
+        animation: loadingProgress 2s ease-in-out infinite;
+      }
+      @keyframes loadingProgress {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+    `;
+    document.head.appendChild(loadingStyles);
+    document.body.appendChild(loadingScreen);
+    
+    // Hide loading screen when page loads
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+          loadingScreen.remove();
+          loadingStyles.remove();
+        }, 500);
+      }, 1000); // Show for at least 1 second
+      
+      // Add staggered animations after load
+      setTimeout(addStaggeredAnimations, 1200);
+    });
+  };
+  
+  // Initialize animations
+  initLoadingAnimation();
+  
+  // Animate progress bars
+  const animateProgressBars = () => {
+    $$('.progress-fill').forEach(progressBar => {
+      const targetWidth = progressBar.getAttribute('data-width') || progressBar.style.width;
+      if (targetWidth) {
+        progressBar.style.width = '0%';
+        // Use requestAnimationFrame for smooth animation
+        setTimeout(() => {
+          progressBar.style.width = targetWidth;
+        }, 300);
+      }
+    });
+  };
+  
+  // Enhanced hover effects
+  const addHoverEffects = () => {
+    $$('.card, .subject-card, .portal-card').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-8px) scale(1.02)';
+      });
+      
+      card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+      });
+    });
+    
+    // Button ripple effect
+    $$('button, .button').forEach(button => {
+      button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+          position: absolute;
+          width: ${size}px;
+          height: ${size}px;
+          left: ${x}px;
+          top: ${y}px;
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          transform: scale(0);
+          animation: ripple 0.6s ease-out;
+          pointer-events: none;
+        `;
+        
+        this.appendChild(ripple);
+        
+        setTimeout(() => {
+          ripple.remove();
+        }, 600);
+      });
+    });
+  };
+  
+  // Enhanced scroll effects
+  const addScrollEffects = () => {
+    let ticking = false;
+    
+    const updateScrollEffects = () => {
+      const scrolled = window.pageYOffset;
+      
+      // Header scroll effect
+      const header = $('.site-header');
+      if (header) {
+        if (scrolled > 50) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      }
+      
+      // Fade in elements on scroll
+      $$('.fade-in-on-scroll').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.8) {
+          el.classList.add('visible');
+        }
+      });
+      
+      ticking = false;
+    };
+    
+    const requestScrollTick = () => {
+      if (!ticking) {
+        requestAnimationFrame(updateScrollEffects);
+        ticking = true;
+      }
+    };
+    
+    window.addEventListener('scroll', requestScrollTick);
+  };
+  
+  // Add notification system
+  const showNotification = (message, type = 'info') => {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      z-index: 1000;
+      max-width: 300px;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.animation = 'slideOutNotification 0.3s ease-out';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  };
+  
+  // Enhanced form interactions
+  const enhanceFormInputs = () => {
+    $$('input, textarea, select').forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement?.classList.add('input-focused');
+      });
+      
+      input.addEventListener('blur', function() {
+        this.parentElement?.classList.remove('input-focused');
+      });
+      
+      // Add typing animation for inputs
+      input.addEventListener('input', function() {
+        this.style.animation = 'inputPulse 0.3s ease-out';
+        setTimeout(() => {
+          this.style.animation = '';
+        }, 300);
+      });
+    });
+  };
+  
+  // Add ripple animation CSS
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ripple {
+      to {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+    @keyframes slideOutNotification {
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+    @keyframes inputPulse {
+      0% { box-shadow: 0 0 0 0 rgba(74, 35, 35, 0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(74, 35, 35, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 35, 35, 0); }
+    }
+    button, .button {
+      position: relative;
+      overflow: hidden;
+    }
+    .input-focused {
+      transform: scale(1.02);
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      observeElements();
+      animateProgressBars();
+      addHoverEffects();
+      addScrollEffects();
+      enhanceFormInputs();
+    });
+  } else {
+    observeElements();
+    animateProgressBars();
+    addHoverEffects();
+    addScrollEffects();
+    enhanceFormInputs();
+  }
+  
+  // Expose notification function globally
+  window.showNotification = showNotification;
   
   // Role-based login visual + subtitle
   const roleSelect = $('#role');
@@ -129,71 +437,8 @@
     });
   }
 
-  // Student dashboard mock (ALA-inspired)
-  const portalsEl = $('#portals');
-  if (portalsEl) {
-    // Limit to five subjects (until DB integration)
-    const subjects = [
-      { id: 'wr', label: 'W&R' },
-      { id: 'afst', label: 'Af. St' },
-      { id: 'math', label: 'Math' },
-      { id: 'cs', label: 'CS' },
-      { id: 'econ', label: 'Econ' },
-    ];
-    subjects.forEach(s => {
-      const a = document.createElement('a');
-      a.href = `/subject?subject=${encodeURIComponent(s.label)}`;
-      a.className = 'portal';
-      const span = document.createElement('span');
-      span.textContent = s.label;
-      a.appendChild(span);
-      portalsEl.appendChild(a);
-    });
-
-    // To-dos and progress
-    const todos = [
-      { text: 'Clear Math S1 Book', done: false },
-      { text: 'Physics Book', done: false },
-      { text: "Clear Dues w/ Finance", done: false },
-    ];
-    const todoList = $('#todoList');
-    if (todoList) {
-      todos.forEach(t => {
-        const row = document.createElement('div');
-        row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.alignItems = 'center'; row.style.gap = '8px';
-        row.innerHTML = `<span>${t.text}</span><span class="badge ${t.done ? 'badge-success' : 'badge-warning'}">${t.done ? 'Done' : 'Pending'}</span>`;
-        todoList.appendChild(row);
-      });
-    }
-    const pct = Math.round((todos.filter(t => t.done).length / todos.length) * 100);
-    const fill = $('#overallFill'); const pctEl = $('#overallPct');
-    if (fill && pctEl) { fill.style.width = pct + '%'; pctEl.textContent = pct + '%'; }
-    const overall = $('#overallStatus');
-    if (overall) {
-      const approved = pct === 100;
-      overall.textContent = approved ? 'Overall: Approved' : 'Overall: Pending';
-      overall.className = 'badge ' + (approved ? 'badge-success' : 'badge-warning');
-    }
-    const exportBtn = $('#exportBtn');
-    if (exportBtn) {
-      exportBtn.addEventListener('click', () => alert('This will export PDF/CSV/Excel once backend is connected.'));
-    }
-
-    // Populate upload subject select
-    const subjectSelect = $('#subjectSelect');
-    if (subjectSelect) {
-      subjects.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id; opt.textContent = r.label; subjectSelect.appendChild(opt);
-      });
-    }
-    $('#uploadBtn')?.addEventListener('click', () => {
-      const code = $('#itemCode').value.trim(); const file = $('#photo').files[0]; const res = $('#uploadResult');
-      if (!code || !file) { res.textContent = 'Please provide item code and a photo.'; return; }
-      if (!file.type.startsWith('image/')) { res.textContent = 'Please upload a valid image.'; return; }
-      res.textContent = 'Uploaded successfully. Awaiting teacher validation.';
-    });
-  }
+  // Student dashboard - real data now handled server-side in templates
+  // Portals and progress are generated from actual student enrollment data
 
   // Subject detail page
   const subjectTitle = $('#subjectTitle');
