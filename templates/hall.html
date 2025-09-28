@@ -31,23 +31,140 @@
   </header>
 
   <main class="container">
-    <div class="toolbar">
-      <h1 style="margin:0;">Hall Checks - {{ user.first_name }} {{ user.last_name }}</h1>
-      <input id="hallSearch" class="input" placeholder="Search by room or student…" style="min-width:60px;">
+    <!-- Header Section -->
+    <div class="dashboard-header animate-fadeInUp">
+      <div>
+        <h1 style="margin:0; font-size: 2rem; font-weight: 700; color: var(--ala-gold);">
+          {{ hall_name }} Hall Management
+        </h1>
+        <p style="margin: 8px 0 0; color: var(--muted); font-size: 1.1rem;">
+          Managing {{ hall_students|length }} students • Hall Head: {{ user.first_name }} {{ user.last_name }}
+        </p>
+      </div>
+      
+      <!-- Search and Filters -->
+      <div class="hall-controls">
+        <div class="search-container">
+          <input id="hallSearch" class="input search-input" placeholder="🔍 Search students, rooms, or year groups..." 
+                 style="min-width: 320px; font-size: 15px;">
+        </div>
+        <div class="filter-controls">
+          <select id="yearGroupFilter" class="input" style="min-width: 150px;">
+            <option value="">All Year Groups</option>
+            <option value="Y1">Year 1</option>
+            <option value="Y2">Year 2</option>
+          </select>
+          <select id="statusFilter" class="input" style="min-width: 150px;">
+            <option value="">All Statuses</option>
+            <option value="approved">Cleared</option>
+            <option value="pending">Pending</option>
+            <option value="not-started">Not Started</option>
+          </select>
+        </div>
+      </div>
     </div>
-    <div class="card glass" style="padding:16px;">
-      <table class="table" id="hallTable">
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>Hall</th>
-            <th>Room</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+
+    <!-- Statistics Cards -->
+    <div class="hall-stats animate-fadeInUp stagger-1">
+      <div class="stat-card">
+        <div class="stat-number">{{ hall_students|length }}</div>
+        <div class="stat-label">Total Residents</div>
+      </div>
+      <div class="stat-card stat-success">
+        <div class="stat-number">
+          {{ hall_students|selectattr('hall_clearance_status', 'equalto', 'approved')|list|length }}
+        </div>
+        <div class="stat-label">Hall Approved</div>
+      </div>
+      <div class="stat-card stat-warning">
+        <div class="stat-number">
+          {{ hall_students|selectattr('room_status', 'equalto', 'needs_attention')|list|length }}
+        </div>
+        <div class="stat-label">Need Attention</div>
+      </div>
+      <div class="stat-card stat-neutral">
+        <div class="stat-number">
+          {{ hall_students|selectattr('room_status', 'equalto', 'clean')|list|length }}
+        </div>
+        <div class="stat-label">Rooms Ready</div>
+      </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card glass animate-fadeInUp stagger-2" style="padding: 0; overflow: hidden;">
+      <div class="table-header">
+        <h3 style="margin: 0; padding: 24px 24px 0; font-size: 1.4rem; font-weight: 600;">Student Clearance Status</h3>
+        <div class="table-actions" style="padding: 0 24px 16px;">
+          <span class="table-count">Showing <span id="visibleCount">{{ hall_students|length }}</span> of {{ hall_students|length }} students</span>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table class="table modern-table" id="hallTable">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Year Group</th>
+              <th>Room</th>
+              <th>Room Status</th>
+              <th>Hall Clearance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in hall_students %}
+            <tr class="table-row" data-student-name="{{ student.first_name }} {{ student.last_name }}" 
+                data-room="{{ student.room_number }}" data-year-group="{{ student.year_group }}" 
+                data-status="{{ student.hall_clearance_status or 'pending' }}">
+              <td class="student-cell">
+                <div class="student-info">
+                  <div class="student-avatar">{{ student.first_name[0] }}{{ student.last_name[0] }}</div>
+                  <div>
+                    <div class="student-name">{{ student.first_name }} {{ student.last_name }}</div>
+                    <div class="student-id">{{ student.student_id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="year-badge">{{ student.year_group or 'N/A' }}</span>
+              </td>
+              <td>
+                <span class="room-number">{{ student.room_number or 'N/A' }}</span>
+              </td>
+              <td>
+                <span class="badge 
+                  {% if student.room_status == 'clean' %}badge-success
+                  {% elif student.room_status == 'needs_attention' %}badge-warning
+                  {% else %}badge-neutral{% endif %}">
+                  {% if student.room_status == 'clean' %}Clean & Ready
+                  {% elif student.room_status == 'needs_attention' %}Needs Attention
+                  {% else %}Pending Inspection{% endif %}
+                </span>
+              </td>
+              <td class="hall-action-cell">
+                <div class="hall-clearance-buttons">
+                  <button class="button button-sm {% if student.hall_clearance_status == 'approved' %}button-success{% else %}button-outline{% endif %}" 
+                          onclick="updateHallClearance('{{ student.student_id }}', 'approved')">
+                    ✓ Approve
+                  </button>
+                  <button class="button button-sm {% if student.hall_clearance_status == 'rejected' %}button-error{% else %}button-outline{% endif %}" 
+                          onclick="updateHallClearance('{{ student.student_id }}', 'rejected')">
+                    ✗ Reject
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      {% if not hall_students %}
+      <div class="empty-state">
+        <div class="empty-icon">🏠</div>
+        <h3>No Students Found</h3>
+        <p>No students are currently assigned to rooms in this hall.</p>
+      </div>
+      {% endif %}
     </div>
   </main>
 

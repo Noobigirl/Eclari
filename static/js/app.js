@@ -12,11 +12,12 @@
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('animate-fadeInUp');
+          observer.unobserve(entry.target); // Stop observing once animated
         }
       });
     }, { 
-      threshold: 0.1,
-      rootMargin: '50px'
+      threshold: 0.05, // Reduced from 0.1 for faster triggering
+      rootMargin: '30px' // Reduced from 50px
     });
     
     // Observe all cards and important elements
@@ -57,20 +58,21 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, var(--ala-maroon), var(--ala-gold));
+        background: var(--ala-maroon);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        transition: opacity 0.5s ease-out;
+        transition: opacity 0.3s ease-out;
       }
       .loading-content {
         text-align: center;
-        color: white;
+        color: var(--ala-gold);
       }
       .loading-logo {
         width: 48px;
         height: 48px;
+        filter: hue-rotate(45deg) brightness(1.2);
         animation: pulse 1.5s ease-in-out infinite;
         margin-bottom: 16px;
       }
@@ -78,20 +80,21 @@
         font-size: 24px;
         font-weight: 700;
         margin-bottom: 24px;
-        animation: fadeInUp 0.8s ease-out;
+        color: var(--ala-gold);
+        animation: fadeInUp 0.6s ease-out;
       }
       .loading-progress {
         width: 200px;
         height: 4px;
-        background: rgba(255,255,255,0.3);
+        background: rgba(218, 165, 32, 0.3);
         border-radius: 2px;
         overflow: hidden;
         margin: 0 auto;
       }
       .loading-bar {
         height: 100%;
-        background: white;
-        animation: loadingProgress 2s ease-in-out infinite;
+        background: var(--ala-gold);
+        animation: loadingProgress 1.5s ease-in-out infinite;
       }
       @keyframes loadingProgress {
         0% { transform: translateX(-100%); }
@@ -108,11 +111,11 @@
         setTimeout(() => {
           loadingScreen.remove();
           loadingStyles.remove();
-        }, 500);
-      }, 1000); // Show for at least 1 second
+        }, 300);
+      }, 400); // Reduced from 1000ms to 400ms
       
       // Add staggered animations after load
-      setTimeout(addStaggeredAnimations, 1200);
+      setTimeout(addStaggeredAnimations, 500); // Reduced from 1200ms to 500ms
     });
   };
   
@@ -126,23 +129,28 @@
       if (targetWidth) {
         progressBar.style.width = '0%';
         // Use requestAnimationFrame for smooth animation
-        setTimeout(() => {
-          progressBar.style.width = targetWidth;
-        }, 300);
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            progressBar.style.width = targetWidth;
+          }, 150); // Reduced from 300ms to 150ms
+        });
       }
     });
   };
   
-  // Enhanced hover effects
+  // Enhanced hover effects (only for clickable subject cards)
   const addHoverEffects = () => {
-    $$('.card, .subject-card, .portal-card').forEach(card => {
-      card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-8px) scale(1.02)';
-      });
-      
-      card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0) scale(1)';
-      });
+    $$('.subject-card').forEach(card => {
+      // Only add hover effects to subject cards which are clickable
+      if (card.onclick || card.getAttribute('onclick')) {
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0) scale(1)';
+        });
+      }
     });
     
     // Button ripple effect
@@ -176,12 +184,21 @@
     });
   };
   
-  // Enhanced scroll effects
+  // Optimized scroll effects with throttling
   const addScrollEffects = () => {
     let ticking = false;
+    let lastScrollY = 0;
     
     const updateScrollEffects = () => {
       const scrolled = window.pageYOffset;
+      
+      // Only update if scroll changed significantly (performance optimization)
+      if (Math.abs(scrolled - lastScrollY) < 5) {
+        ticking = false;
+        return;
+      }
+      
+      lastScrollY = scrolled;
       
       // Header scroll effect
       const header = $('.site-header');
@@ -193,14 +210,6 @@
         }
       }
       
-      // Fade in elements on scroll
-      $$('.fade-in-on-scroll').forEach(el => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.8) {
-          el.classList.add('visible');
-        }
-      });
-      
       ticking = false;
     };
     
@@ -211,7 +220,7 @@
       }
     };
     
-    window.addEventListener('scroll', requestScrollTick);
+    window.addEventListener('scroll', requestScrollTick, { passive: true });
   };
   
   // Add notification system
@@ -240,7 +249,7 @@
     }, 3000);
   };
   
-  // Enhanced form interactions
+  // Enhanced form interactions (removed hover effects, keep focus only)
   const enhanceFormInputs = () => {
     $$('input, textarea, select').forEach(input => {
       input.addEventListener('focus', function() {
@@ -251,13 +260,7 @@
         this.parentElement?.classList.remove('input-focused');
       });
       
-      // Add typing animation for inputs
-      input.addEventListener('input', function() {
-        this.style.animation = 'inputPulse 0.3s ease-out';
-        setTimeout(() => {
-          this.style.animation = '';
-        }, 300);
-      });
+      // Removed input animation on typing
     });
   };
   
@@ -521,31 +524,6 @@
     });
   }
 
-  // Hall dashboard mock
-  const hallTable = $('#hallTable tbody');
-  if (hallTable) {
-    // Only students in assigned hall (mock)
-    const rooms = [
-      { student: 'S12345 • Ama N.', hall: 'Kibo', room: 'A-203', status: 'OK' },
-      { student: 'S12002 • Malik O.', hall: 'Kibo', room: 'A-118', status: 'Not OK' }
-    ];
-    const statusClass = (s) => s === 'OK' ? 'badge-success' : 'badge-danger';
-    rooms.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.student}</td>
-        <td>${r.hall}</td>
-        <td>${r.room}</td>
-        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
-        <td>
-          <button class="button button-primary">Mark OK</button>
-          <button class="button">Mark Not OK</button>
-        </td>
-      `;
-      hallTable.appendChild(tr);
-    });
-  }
-
   // Coach dashboard mock
   const coachTable = $('#coachTable tbody');
   if (coachTable) {
@@ -594,6 +572,133 @@
       labTable.appendChild(tr);
     });
   }
+
+  // Hall Page Functionality
+  const hallSearch = $('#hallSearch');
+  const yearGroupFilter = $('#yearGroupFilter');
+  const statusFilter = $('#statusFilter');
+  const hallTableMain = $('#hallTable');
+  const visibleCount = $('#visibleCount');
+
+  if (hallSearch && hallTableMain) {
+    let allRows = [];
+    
+    // Initialize rows array
+    const initializeRows = () => {
+      allRows = Array.from(hallTableMain.querySelectorAll('.table-row'));
+    };
+    
+    // Filter and search functionality
+    const filterTable = () => {
+      if (allRows.length === 0) initializeRows();
+      
+      const searchTerm = hallSearch.value.toLowerCase().trim();
+      const yearGroupValue = yearGroupFilter?.value || '';
+      const statusValue = statusFilter?.value || '';
+      
+      let visibleRowCount = 0;
+      
+      allRows.forEach(row => {
+        const studentName = row.dataset.studentName?.toLowerCase() || '';
+        const room = row.dataset.room?.toLowerCase() || '';
+        const yearGroup = row.dataset.yearGroup || '';
+        const status = row.dataset.status || '';
+        
+        // Check search term (name or room)
+        const matchesSearch = !searchTerm || 
+          studentName.includes(searchTerm) || 
+          room.includes(searchTerm);
+        
+        // Check year group filter
+        const matchesYearGroup = !yearGroupValue || yearGroup === yearGroupValue;
+        
+        // Check status filter
+        const matchesStatus = !statusValue || status === statusValue;
+        
+        // Show/hide row based on all criteria
+        const isVisible = matchesSearch && matchesYearGroup && matchesStatus;
+        
+        if (isVisible) {
+          row.style.display = '';
+          visibleRowCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Update visible count
+      if (visibleCount) {
+        visibleCount.textContent = visibleRowCount;
+      }
+      
+      // Show empty state if no results
+      updateEmptyState(visibleRowCount === 0 && allRows.length > 0);
+    };
+    
+    // Update empty state
+    const updateEmptyState = (show) => {
+      let emptyRow = hallTableMain.querySelector('.empty-row');
+      
+      if (show && !emptyRow) {
+        emptyRow = document.createElement('tr');
+        emptyRow.className = 'empty-row';
+        emptyRow.innerHTML = `
+          <td colspan="6" style="text-align: center; padding: 60px 20px; color: var(--muted);">
+            <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+            <h3 style="margin: 0 0 8px; color: var(--text);">No Results Found</h3>
+            <p style="margin: 0;">Try adjusting your search or filter criteria.</p>
+          </td>
+        `;
+        hallTableMain.querySelector('tbody').appendChild(emptyRow);
+      } else if (!show && emptyRow) {
+        emptyRow.remove();
+      }
+    };
+    
+    // Event listeners
+    hallSearch.addEventListener('input', filterTable);
+    yearGroupFilter?.addEventListener('change', filterTable);
+    statusFilter?.addEventListener('change', filterTable);
+    
+    // Initialize on page load
+    setTimeout(initializeRows, 100);
+  }
+
+  // Update Hall Clearance functionality
+  window.updateHallClearance = function(studentId, status) {
+    const statusText = status === 'approved' ? 'Approved' : 'Rejected';
+    
+    if (window.showNotification) {
+      const message = `Hall clearance ${statusText.toLowerCase()} for student ${studentId}`;
+      window.showNotification(message, status === 'approved' ? 'success' : 'warning');
+    }
+    
+    // Here you would typically make an API call to update the database
+    console.log(`Updating hall clearance for student ${studentId} to ${status}`);
+    
+    // Update button states
+    const row = document.querySelector(`tr[data-student-name*="${studentId}"]`);
+    if (row) {
+      const buttons = row.querySelectorAll('.hall-clearance-buttons button');
+      buttons.forEach(button => {
+        button.classList.remove('button-success', 'button-error');
+        button.classList.add('button-outline');
+      });
+      
+      // Highlight the selected button
+      const targetButton = Array.from(buttons).find(btn => 
+        btn.textContent.includes(status === 'approved' ? 'Approve' : 'Reject')
+      );
+      if (targetButton) {
+        targetButton.classList.remove('button-outline');
+        targetButton.classList.add(status === 'approved' ? 'button-success' : 'button-error');
+      }
+      
+      // Update the row's data attribute for filtering
+      row.setAttribute('data-status', status);
+    }
+  };
+
 })();
 
 

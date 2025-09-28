@@ -449,3 +449,40 @@ def calculate_overall_clearance_status(student_id):
     except Exception as e:
         print(f"Error calculating overall clearance status: {e}")
         return 'not-started'
+
+def get_students_by_hall_with_clearance(hall_id):
+    """Get students in a hall with their room assignments and hall-specific status"""
+    try:
+        # Get all rooms in the hall with student assignments
+        result = supabase.table('rooms').select('''
+            *,
+            student_id (
+                student_id,
+                first_name,
+                last_name,
+                year_group
+            )
+        ''').eq('hall_id', hall_id).execute()
+        
+        students_data = []
+        for room in result.data:
+            if room['student_id'] and isinstance(room['student_id'], dict):  # Only include rooms with assigned students
+                student = room['student_id']
+                    
+                students_data.append({
+                    'student_id': student['student_id'],
+                    'first_name': student['first_name'],
+                    'last_name': student['last_name'],
+                    'year_group': student.get('year_group', 'N/A'),
+                    'room_number': room.get('room_id', 'N/A'),
+                    'room_status': room.get('room_status', 'pending_inspection'),
+                    'hall_clearance_status': room.get('hall_clearance_status', 'pending'),
+                    'hall_name': room.get('hall_name', 'Unknown Hall')
+                })
+        
+        return students_data
+    except Exception as e:
+        print(f"Error getting students by hall: {e}")
+        # If there are database issues, return empty list instead of dummy data
+        return []
+

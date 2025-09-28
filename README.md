@@ -223,3 +223,11 @@ SUPABASE_ANON_KEY=your-anon-public-key
 - Frontend assets are bundled with Vite for optimal performance
 - All dashboard pages require authentication
 
+roles for loged in users:
+student
+teacher
+finance
+hall
+coach
+lab
+

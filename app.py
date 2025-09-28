@@ -8,7 +8,7 @@ from supabase_client import (
     get_materials_by_subject, get_all_materials, get_all_subjects, get_all_students,
     get_all_teachers, search_students, calculate_subject_clearance_percentage,
     calculate_subject_clearance_status, calculate_overall_clearance_percentage,
-    calculate_overall_clearance_status
+    calculate_overall_clearance_status, get_students_by_hall_with_clearance
 )
 import os
 import jwt
@@ -208,9 +208,12 @@ def create_app() -> Flask:
         
         elif role == 'hall':
             hall_id = user.get('id')
+            hall_info = get_hall_head_by_id(hall_id)
             dashboard_data.update({
                 'hall_rooms': get_rooms_by_hall(hall_id),
-                'hall_info': get_hall_head_by_id(hall_id)
+                'hall_info': hall_info,
+                'hall_students': get_students_by_hall_with_clearance(hall_id),
+                'hall_name': hall_info.get('hall_name') if hall_info else 'Unknown Hall'
             })
         
         elif role == 'lab':
@@ -410,10 +413,40 @@ def create_app() -> Flask:
         else:
             return jsonify({'success': False, 'message': 'Failed to update financial record'}), 400
 
+    # Debug routes for testing hall functionality
+    @app.route("/debug/hall/<hall_id>")
+    def debug_hall(hall_id):
+        """Debug hall data for a specific hall_id"""
+        hall_info = get_hall_head_by_id(hall_id)
+        hall_students = get_students_by_hall_with_clearance(hall_id)
+        hall_rooms = get_rooms_by_hall(hall_id)
+        return {
+            'hall_id': hall_id,
+            'hall_info': hall_info,
+            'students_count': len(hall_students),
+            'students_data': hall_students,
+            'rooms_count': len(hall_rooms) if hall_rooms else 0,
+            'rooms_data': hall_rooms
+        }
+    
+    @app.route("/debug/all_halls")
+    def debug_all_halls():
+        """Debug all hall heads in the database"""
+        try:
+            result = supabase.table('hall_heads').select('*').execute()
+            return {
+                'hall_heads': result.data,
+                'count': len(result.data)
+            }
+        except Exception as e:
+            return {'error': str(e)}
+
     return app
 
 
 app = create_app()
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
