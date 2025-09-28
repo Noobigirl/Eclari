@@ -49,17 +49,41 @@
                  style="min-width: 320px; font-size: 15px;">
         </div>
         <div class="filter-controls">
-          <select id="yearGroupFilter" class="input" style="min-width: 150px;">
-            <option value="">All Year Groups</option>
-            <option value="Y1">Year 1</option>
-            <option value="Y2">Year 2</option>
-          </select>
-          <select id="statusFilter" class="input" style="min-width: 150px;">
-            <option value="">All Statuses</option>
-            <option value="approved">Cleared</option>
-            <option value="pending">Pending</option>
-            <option value="not-started">Not Started</option>
-          </select>
+          <div class="select-wrap" style="min-width: 150px;">
+            <select id="yearGroupFilter" class="select-hidden">
+              <option value="">All Year Groups</option>
+              <option value="Y1">Year 1</option>
+              <option value="Y2">Year 2</option>
+            </select>
+            <button type="button" class="select-trigger" id="yearGroupTrigger">
+              <span id="yearGroupText">All Year Groups</span>
+              <span class="select-caret"></span>
+            </button>
+            <div class="select-menu" id="yearGroupMenu">
+              <div class="select-option" data-value="" aria-selected="true">All Year Groups</div>
+              <div class="select-option" data-value="Y1">Year 1</div>
+              <div class="select-option" data-value="Y2">Year 2</div>
+            </div>
+          </div>
+          
+          <div class="select-wrap" style="min-width: 150px;">
+            <select id="statusFilter" class="select-hidden">
+              <option value="">All Statuses</option>
+              <option value="approved">Cleared</option>
+              <option value="pending">Pending</option>
+              <option value="not-started">Not Started</option>
+            </select>
+            <button type="button" class="select-trigger" id="statusTrigger">
+              <span id="statusText">All Statuses</span>
+              <span class="select-caret"></span>
+            </button>
+            <div class="select-menu" id="statusMenu">
+              <div class="select-option" data-value="" aria-selected="true">All Statuses</div>
+              <div class="select-option" data-value="approved">Cleared</div>
+              <div class="select-option" data-value="pending">Pending</div>
+              <div class="select-option" data-value="not-started">Not Started</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -113,7 +137,7 @@
           <tbody>
             {% for student in hall_students %}
             <tr class="table-row" data-student-name="{{ student.first_name }} {{ student.last_name }}" 
-                data-room="{{ student.room_number }}" data-year-group="{{ student.year_group }}" 
+                data-room="{{ student.room_number }}" data-year-group="{% if student.year_group %}Y{{ student.year_group }}{% endif %}" 
                 data-status="{{ student.hall_clearance_status or 'pending' }}">
               <td class="student-cell">
                 <div class="student-info">
@@ -125,7 +149,13 @@
                 </div>
               </td>
               <td>
-                <span class="year-badge">{{ student.year_group or 'N/A' }}</span>
+                <span class="year-badge">
+                  {% if student.year_group %}
+                    Y{{ student.year_group }}
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </span>
               </td>
               <td>
                 <span class="room-number">{{ student.room_number or 'N/A' }}</span>

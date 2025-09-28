@@ -573,6 +573,88 @@
     });
   }
 
+  // Hall Page Custom Select Functionality
+  const initializeHallSelects = () => {
+    // Year Group Filter
+    const yearGroupTrigger = $('#yearGroupTrigger');
+    const yearGroupMenu = $('#yearGroupMenu');
+    const yearGroupText = $('#yearGroupText');
+    const yearGroupHidden = $('#yearGroupFilter');
+    
+    if (yearGroupTrigger && yearGroupMenu) {
+      yearGroupTrigger.addEventListener('click', () => {
+        const isOpen = yearGroupTrigger.parentElement.classList.contains('select-open');
+        
+        // Close other selects
+        document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+        
+        if (!isOpen) {
+          yearGroupTrigger.parentElement.classList.add('select-open');
+        }
+      });
+      
+      yearGroupMenu.querySelectorAll('.select-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const value = option.dataset.value;
+          yearGroupText.textContent = option.textContent;
+          yearGroupHidden.value = value;
+          
+          // Update selected state
+          yearGroupMenu.querySelectorAll('.select-option').forEach(opt => opt.removeAttribute('aria-selected'));
+          option.setAttribute('aria-selected', 'true');
+          
+          yearGroupTrigger.parentElement.classList.remove('select-open');
+          
+          // Trigger filter update
+          filterTable();
+        });
+      });
+    }
+    
+    // Status Filter
+    const statusTrigger = $('#statusTrigger');
+    const statusMenu = $('#statusMenu');
+    const statusText = $('#statusText');
+    const statusHidden = $('#statusFilter');
+    
+    if (statusTrigger && statusMenu) {
+      statusTrigger.addEventListener('click', () => {
+        const isOpen = statusTrigger.parentElement.classList.contains('select-open');
+        
+        // Close other selects
+        document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+        
+        if (!isOpen) {
+          statusTrigger.parentElement.classList.add('select-open');
+        }
+      });
+      
+      statusMenu.querySelectorAll('.select-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const value = option.dataset.value;
+          statusText.textContent = option.textContent;
+          statusHidden.value = value;
+          
+          // Update selected state
+          statusMenu.querySelectorAll('.select-option').forEach(opt => opt.removeAttribute('aria-selected'));
+          option.setAttribute('aria-selected', 'true');
+          
+          statusTrigger.parentElement.classList.remove('select-open');
+          
+          // Trigger filter update
+          filterTable();
+        });
+      });
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.select-wrap')) {
+        document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+      }
+    });
+  };
+
   // Hall Page Functionality
   const hallSearch = $('#hallSearch');
   const yearGroupFilter = $('#yearGroupFilter');
@@ -662,6 +744,9 @@
     
     // Initialize on page load
     setTimeout(initializeRows, 100);
+    
+    // Initialize custom selects
+    initializeHallSelects();
   }
 
   // Update Hall Clearance functionality

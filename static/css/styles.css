@@ -1500,14 +1500,14 @@ input, select {
 }
 
 .button-success {
-  background: #22c55e;
-  color: white;
-  border: 2px solid #22c55e;
+  background: #22c55e !important;
+  color: white !important;
+  border: 2px solid #22c55e !important;
 }
 
 .button-success:hover {
-  background: #16a34a;
-  border-color: #16a34a;
+  background: #16a34a !important;
+  border-color: #16a34a !important;
 }
 
 .button-outline {
