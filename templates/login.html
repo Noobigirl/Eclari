@@ -4,12 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eclari — Log in</title>
+  
+  <!-- Google Fonts - Inter for clean, modern typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Main stylesheet with all custom styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   
-  <!-- Favicon -->
+  <!-- Favicon configuration for all devices -->
   <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon_io/favicon-16x16.png') }}">
@@ -17,6 +21,7 @@
   <link rel="manifest" href="{{ url_for('static', filename='images/favicon_io/site.webmanifest') }}">
 </head>
 <body>
+  <!-- Site header with navigation -->
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="{{ url_for('home') }}">

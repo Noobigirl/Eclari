@@ -1,25 +1,50 @@
+"""
+Eclari Supabase Client - Database Access Layer
+
+This module provides all database access functions for the Eclari student clearance system.
+It handles connections to Supabase and provides clean, typed interfaces for all data operations.
+
+The functions are organized by entity type (students, teachers, hall, finance, etc.) 
+and provide comprehensive error handling and data validation.
+
+Author: Built with care for ALA students
+Date: 2025
+"""
+
 import os
 from dotenv import load_dotenv
 from supabase import create_client
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Get Supabase configuration from environment
 url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
+key = os.getenv("SUPABASE_KEY")  # This is the service role key for backend access
 
+# Validate that required environment variables are set
 if not url:
     raise ValueError("SUPABASE_URL environment variable is not set")
 if not key:
     raise ValueError("SUPABASE_KEY environment variable is not set")
 
+# Create the Supabase client instance
+# This client will be used throughout the application for database access
 supabase = create_client(url, key)
 
-# ===============================
-# STUDENT DATA FUNCTIONS
-# ===============================
+# ===== STUDENT DATA FUNCTIONS =====
+# These functions handle all student-related data access
 
 def get_student_by_id(student_id):
-    """Get student details by student_id"""
+    """
+    Get complete student profile information by student ID.
+    
+    Args:
+        student_id (str): The unique student identifier
+        
+    Returns:
+        dict: Student data including personal info, or None if not found
+    """
     try:
         result = supabase.table('students').select('*').eq('student_id', student_id).execute()
         return result.data[0] if result.data else None
@@ -28,7 +53,18 @@ def get_student_by_id(student_id):
         return None
 
 def get_student_classes(student_id):
-    """Get all classes for a student with subject and teacher details"""
+    """
+    Get all classes a student is enrolled in with complete details.
+    
+    This includes subject information and teacher details for each class.
+    Essential for showing students their clearance status per subject.
+    
+    Args:
+        student_id (str): The student's unique identifier
+        
+    Returns:
+        list: List of enrollment records with nested class/subject/teacher data
+    """
     try:
         result = supabase.table('student_classes').select('''
             *,
@@ -48,7 +84,19 @@ def get_student_classes(student_id):
         return []
 
 def get_student_books(student_id):
-    """Get all books assigned to a student"""
+    """
+    Get all books currently assigned to a student.
+    
+    This is crucial for clearance - students must return all books
+    before they can be cleared. Includes subject information to 
+    help students identify which books belong to which classes.
+    
+    Args:
+        student_id (str): The student's unique identifier
+        
+    Returns:
+        list: List of book records with subject details
+    """
     try:
         result = supabase.table('books').select('''
             *,
@@ -63,7 +111,18 @@ def get_student_books(student_id):
         return []
 
 def get_student_materials(student_id):
-    """Get all materials assigned to a student"""
+    """
+    Get all lab/classroom materials currently assigned to a student.
+    
+    Students need to return lab equipment, sports gear, and other
+    materials before clearance. This tracks what they still have.
+    
+    Args:
+        student_id (str): The student's unique identifier
+        
+    Returns:
+        list: List of material records assigned to the student
+    """
     try:
         result = supabase.table('materials').select('*').eq('student_id', student_id).execute()
         return result.data
@@ -72,7 +131,18 @@ def get_student_materials(student_id):
         return []
 
 def get_student_financial_overview(student_id):
-    """Get financial overview for a student"""
+    """
+    Get financial status summary for a student.
+    
+    Shows outstanding fees, payment status, and financial clearance status.
+    Critical for determining if student can be cleared financially.
+    
+    Args:
+        student_id (str): The student's unique identifier
+        
+    Returns:
+        dict: Financial overview data, or None if not found
+    """
     try:
         result = supabase.table('student_financial_overview').select('*').eq('student_id', student_id).execute()
         return result.data[0] if result.data else None
@@ -81,7 +151,18 @@ def get_student_financial_overview(student_id):
         return None
 
 def get_student_room(student_id):
-    """Get room assignment for a student"""
+    """
+    Get room assignment and hall information for a student.
+    
+    Students need hall clearance from their residential hall before
+    final clearance. This shows which hall/room they're assigned to.
+    
+    Args:
+        student_id (str): The student's unique identifier
+        
+    Returns:
+        dict: Room assignment data, or None if not found
+    """
     try:
         result = supabase.table('rooms').select('''
             *,
