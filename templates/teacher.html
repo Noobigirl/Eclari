@@ -26,119 +26,179 @@
       </a>
       <nav class="nav">
         <span class="chip">Teacher</span>
-        <button id="logoutBtn" class="button">Sign out</button>
+        <a class="button" href="{{ url_for('logout') }}">Sign out</a>
       </nav>
     </div>
   </header>
 
   <main class="container">
-    <div class="toolbar">
+    <div class="toolbar" style="flex-direction: column; align-items: flex-start; gap: 16px;">
       <h1 style="margin:0;">Welcome, {{ user.first_name }} {{ user.last_name }}</h1>
-      <div style="display:flex; gap:10px;">
-        <input class="input" id="teacherSearch" placeholder="Search students…" style="min-width:240px;" />
+      
+      <!-- Search and Filter Controls -->
+      <div style="display:flex; gap:12px; flex-wrap: wrap; align-items: center; width: 100%;">
+        <input class="input" id="teacherSearch" placeholder="🔍 Search students..." style="min-width:280px; flex: 1; max-width: 400px;" />
+        
+        <!-- Filter Controls -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div class="select-wrap" style="min-width: 150px;">
+            <select id="classFilter" class="select-hidden">
+              <option value="">All Classes</option>
+              {% for class in teacher_classes %}
+                <option value="{{ class.class_name }}">{{ class.class_name }}</option>
+              {% endfor %}
+            </select>
+            <button type="button" class="select-trigger" id="classTrigger">
+              <span id="classText">All Classes</span>
+              <span class="select-caret"></span>
+            </button>
+            <div class="select-menu" id="classMenu">
+              <div class="select-option" data-value="" aria-selected="true">All Classes</div>
+              {% for class in teacher_classes %}
+                <div class="select-option" data-value="{{ class.class_name }}">{{ class.class_name }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="select-wrap" style="min-width: 130px;">
+            <select id="yearGroupFilter" class="select-hidden">
+              <option value="">All Years</option>
+              <option value="Y1">Year 1</option>
+              <option value="Y2">Year 2</option>
+            </select>
+            <button type="button" class="select-trigger" id="yearTrigger">
+              <span id="yearText">All Years</span>
+              <span class="select-caret"></span>
+            </button>
+            <div class="select-menu" id="yearMenu">
+              <div class="select-option" data-value="" aria-selected="true">All Years</div>
+              <div class="select-option" data-value="Y1">Year 1</div>
+              <div class="select-option" data-value="Y2">Year 2</div>
+            </div>
+          </div>
+          
+          <div class="select-wrap" style="min-width: 150px;">
+            <select id="bookStatusFilter" class="select-hidden">
+              <option value="">All Statuses</option>
+              <option value="returned">Returned</option>
+              <option value="not-returned">Not Returned</option>
+            </select>
+            <button type="button" class="select-trigger" id="bookStatusTrigger">
+              <span id="bookStatusText">All Statuses</span>
+              <span class="select-caret"></span>
+            </button>
+            <div class="select-menu" id="bookStatusMenu">
+              <div class="select-option" data-value="" aria-selected="true">All Statuses</div>
+              <div class="select-option" data-value="returned">Returned</div>
+              <div class="select-option" data-value="not-returned">Not Returned</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="grid grid-2" style="gap: 16px; margin-bottom: 20px;">
-      <div class="card glass" style="padding:16px;">
-        <h3 style="margin:0 0 16px;">Your Classes</h3>
-        {% if teacher_classes %}
+    <div class="card glass" style="padding:16px; margin-bottom: 20px;">
+      <h3 style="margin:0 0 16px;">Your Classes</h3>
+      {% if teacher_classes %}
+        <div class="grid grid-3" style="gap: 12px;">
           {% for class in teacher_classes %}
-            <div class="ala-light card" style="padding:12px; margin-bottom:12px;">
+            <div class="ala-light card class-card" style="padding:12px; cursor: pointer; transition: all 0.3s ease;" 
+                 data-class="{{ class.class_name }}" onclick="selectClass('{{ class.class_name }}')">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <h4 style="margin: 0;">{{ class.class_name }}</h4>
                 <span class="badge badge-success">{{ class.subject_id.subject_name }}</span>
               </div>
-              <p style="margin: 4px 0; color: var(--muted);">Students enrolled: {{ class.students|length if class.students else 0 }}</p>
-              <details style="margin-top: 8px;">
-                <summary style="cursor: pointer; color: var(--ala-gold);">View Students</summary>
-                <div style="margin-top: 8px;">
-                  {% if class.students %}
-                    {% for enrollment in class.students %}
-                      <div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <strong>{{ enrollment.student_id.first_name }} {{ enrollment.student_id.last_name }}</strong>
-                        <span style="color: var(--muted); margin-left: 8px;">Year {{ enrollment.student_id.year_group }}</span>
-                      </div>
-                    {% endfor %}
-                  {% else %}
-                    <p style="color: var(--muted); font-style: italic;">No students enrolled yet.</p>
-                  {% endif %}
-                </div>
-              </details>
+              <p style="margin: 4px 0; color: var(--muted);">Students: {{ class.students|length if class.students else 0 }}</p>
+              <div style="margin-top: 8px; font-size: 12px; color: var(--ala-gold);">
+                Click to view books & materials
+              </div>
             </div>
           {% endfor %}
-        {% else %}
-          <p style="color: var(--muted); text-align: center; padding: 20px 0;">No classes assigned yet.</p>
-        {% endif %}
-      </div>
-      
-      <div class="card glass" style="padding:16px;">
-        <h3 style="margin:0 0 16px;">Subject Overview</h3>
-        {% if all_subjects %}
-          {% for subject in all_subjects %}
-            <div style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-              <strong>{{ subject.subject_name }}</strong> ({{ subject.subject_id }})
-            </div>
-          {% endfor %}
-        {% endif %}
-      </div>
+        </div>
+      {% else %}
+        <p style="color: var(--muted); text-align: center; padding: 20px 0;">No classes assigned yet.</p>
+      {% endif %}
     </div>
 
-    <div class="card glass" style="padding:16px;">
+    <div class="card glass" style="padding:16px;" id="booksTable">
       <h3 style="margin:0 0 16px;">Books & Materials Verification</h3>
       {% if teacher_classes %}
-        {% for class in teacher_classes %}
-          {% if class.books %}
-            <div class="ala-light card" style="padding:12px; margin-bottom:12px;">
-              <h4 style="margin: 0 0 8px;">{{ class.subject_id.subject_name }} Books</h4>
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Book ID</th>
-                    <th>Student</th>
-                    <th>Cost</th>
-                    <th>Returned</th>
-                    <th>Action</th>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Book ID</th>
+              <th>Student</th>
+              <th>Class</th>
+              <th>Year Group</th>
+              <th>Cost</th>
+              <th>Returned</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="booksTableBody">
+            {% for class in teacher_classes %}
+              {% if class.books %}
+                {% for book in class.books %}
+                  <tr class="table-row" 
+                      data-student-name="{{ book.student_id.first_name }} {{ book.student_id.last_name }}" 
+                      data-class="{{ class.class_name }}" 
+                      data-year-group="{% if book.student_id.year_group %}Y{{ book.student_id.year_group }}{% endif %}" 
+                      data-book-status="{% if book.returned %}returned{% else %}not-returned{% endif %}">
+                    <td>{{ book.book_id }}</td>
+                    <td>{{ book.student_id.first_name }} {{ book.student_id.last_name }}</td>
+                    <td>
+                      <span class="badge badge-primary">{{ class.class_name }}</span>
+                    </td>
+                    <td>
+                      <span class="year-badge">
+                        {% if book.student_id.year_group %}
+                          Y{{ book.student_id.year_group }}
+                        {% else %}
+                          N/A
+                        {% endif %}
+                      </span>
+                    </td>
+                    <td>${{ "%.2f"|format(book.cost) }}</td>
+                    <td>
+                      <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
+                        {% if book.returned %}Yes{% else %}No{% endif %}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="button button-sm toggle-return-btn" 
+                              data-type="book" 
+                              data-id="{{ book.book_id }}" 
+                              data-returned="{{ book.returned|lower }}">
+                        {% if book.returned %}Mark Not Returned{% else %}Mark Returned{% endif %}
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {% for book in class.books %}
-                    <tr>
-                      <td>{{ book.book_id }}</td>
-                      <td>{{ book.student_id.first_name }} {{ book.student_id.last_name }}</td>
-                      <td>${{ "%.2f"|format(book.cost) }}</td>
-                      <td>
-                        <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
-                          {% if book.returned %}Yes{% else %}No{% endif %}
-                        </span>
-                      </td>
-                      <td>
-                        <button class="button button-sm toggle-return-btn" 
-                                data-type="book" 
-                                data-id="{{ book.book_id }}" 
-                                data-returned="{{ book.returned|lower }}">
-                          {% if book.returned %}Mark Not Returned{% else %}Mark Returned{% endif %}
-                        </button>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% endif %}
-        {% endfor %}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
         <p style="color: var(--muted); text-align: center; padding: 20px 0;">No books to verify.</p>
       {% endif %}
     </div>
 
-    <div class="card glass" style="padding:16px; margin-top:16px;">
-      <h3 style="margin:0 0 10px;">Digital Signature</h3>
+    <div class="card glass" style="padding:20px; margin-top:20px;">
+      <h3 style="margin:0 0 16px; color: var(--ala-maroon); font-weight: 600;">Digital Signature</h3>
       <div class="stack">
-        <canvas id="sigPad" width="600" height="160" style="background:rgba(110, 66, 66, 0.695); border:1px solid var(--border); border-radius:10px;"></canvas>
-        <div style="display:flex; gap:10px;">
-          <button class="button" id="clearSig">Clear</button>
-          <button class="button button-primary" id="saveSig">Save Signature</button>
+        <div style="position: relative; display: inline-block;">
+          <canvas id="sigPad" width="600" height="160" style="background: white; border: 2px solid var(--ala-maroon); border-radius: 10px; cursor: crosshair; display: block;"></canvas>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--muted); pointer-events: none; font-size: 14px; opacity: 0.6;" id="signaturePrompt">
+            Sign here with your mouse or touch
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; margin-top: 16px;">
+          <button class="button" id="clearSig" style="background: #807f6b; border-color: #6b7280;">
+             Clear
+          </button>
+          <button class="button button-primary" id="saveSig" style="background: var(--ala-maroon); border-color: var(--ala-maroon);">
+             Save Signature
+          </button>
         </div>
       </div>
     </div>
@@ -151,6 +211,198 @@
     
     // Teacher dashboard functionality
     document.addEventListener('DOMContentLoaded', function() {
+      // Class selection function for clickable class cards
+      window.selectClass = function(className) {
+        // Update the class filter dropdown
+        const classHidden = document.getElementById('classFilter');
+        const classText = document.getElementById('classText');
+        const classMenu = document.getElementById('classMenu');
+        
+        if (classHidden && classText && classMenu) {
+          classHidden.value = className;
+          classText.textContent = className;
+          
+          // Update aria-selected in dropdown
+          classMenu.querySelectorAll('.select-option').forEach(opt => {
+            opt.removeAttribute('aria-selected');
+            if (opt.dataset.value === className) {
+              opt.setAttribute('aria-selected', 'true');
+            }
+          });
+        }
+        
+        // Clear other filters for focused view
+        const yearGroupHidden = document.getElementById('yearGroupFilter');
+        const yearGroupText = document.getElementById('yearGroupText');
+        const bookStatusHidden = document.getElementById('bookStatusFilter');
+        const bookStatusText = document.getElementById('bookStatusText');
+        
+        if (yearGroupHidden && yearGroupText) {
+          yearGroupHidden.value = '';
+          yearGroupText.textContent = 'All Year Groups';
+        }
+        if (bookStatusHidden && bookStatusText) {
+          bookStatusHidden.value = '';
+          bookStatusText.textContent = 'All Statuses';
+        }
+        
+        // Apply filter and scroll to table
+        filterTable();
+        
+        // Smooth scroll to books table
+        const booksTable = document.getElementById('booksTable');
+        if (booksTable) {
+          booksTable.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest' 
+          });
+        }
+        
+        // Add visual feedback to selected class card
+        document.querySelectorAll('.class-card').forEach(card => {
+          card.style.backgroundColor = '';
+          card.style.borderColor = '';
+        });
+        const selectedCard = document.querySelector(`[data-class="${className}"]`);
+        if (selectedCard) {
+          selectedCard.style.backgroundColor = 'rgba(156, 39, 39, 0.1)';
+          selectedCard.style.borderColor = 'var(--ala-maroon)';
+        }
+      };
+      
+      // Initialize custom select dropdowns for filters
+      const initializeTeacherSelects = () => {
+        // Class Filter
+        const classTrigger = document.getElementById('classTrigger');
+        const classMenu = document.getElementById('classMenu');
+        const classText = document.getElementById('classText');
+        const classHidden = document.getElementById('classFilter');
+        
+        if (classTrigger && classMenu) {
+          classTrigger.addEventListener('click', () => {
+            const isOpen = classTrigger.parentElement.classList.contains('select-open');
+            document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+            if (!isOpen) classTrigger.parentElement.classList.add('select-open');
+          });
+          
+          classMenu.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', () => {
+              const value = option.dataset.value;
+              classText.textContent = option.textContent;
+              classHidden.value = value;
+              classMenu.querySelectorAll('.select-option').forEach(opt => opt.removeAttribute('aria-selected'));
+              option.setAttribute('aria-selected', 'true');
+              classTrigger.parentElement.classList.remove('select-open');
+              filterTable();
+            });
+          });
+        }
+        
+        // Year Group Filter
+        const yearTrigger = document.getElementById('yearTrigger');
+        const yearMenu = document.getElementById('yearMenu');
+        const yearText = document.getElementById('yearText');
+        const yearHidden = document.getElementById('yearGroupFilter');
+        
+        if (yearTrigger && yearMenu) {
+          yearTrigger.addEventListener('click', () => {
+            const isOpen = yearTrigger.parentElement.classList.contains('select-open');
+            document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+            if (!isOpen) yearTrigger.parentElement.classList.add('select-open');
+          });
+          
+          yearMenu.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', () => {
+              const value = option.dataset.value;
+              yearText.textContent = option.textContent;
+              yearHidden.value = value;
+              yearMenu.querySelectorAll('.select-option').forEach(opt => opt.removeAttribute('aria-selected'));
+              option.setAttribute('aria-selected', 'true');
+              yearTrigger.parentElement.classList.remove('select-open');
+              filterTable();
+            });
+          });
+        }
+        
+        // Book Status Filter
+        const statusTrigger = document.getElementById('bookStatusTrigger');
+        const statusMenu = document.getElementById('bookStatusMenu');
+        const statusText = document.getElementById('bookStatusText');
+        const statusHidden = document.getElementById('bookStatusFilter');
+        
+        if (statusTrigger && statusMenu) {
+          statusTrigger.addEventListener('click', () => {
+            const isOpen = statusTrigger.parentElement.classList.contains('select-open');
+            document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+            if (!isOpen) statusTrigger.parentElement.classList.add('select-open');
+          });
+          
+          statusMenu.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', () => {
+              const value = option.dataset.value;
+              statusText.textContent = option.textContent;
+              statusHidden.value = value;
+              statusMenu.querySelectorAll('.select-option').forEach(opt => opt.removeAttribute('aria-selected'));
+              option.setAttribute('aria-selected', 'true');
+              statusTrigger.parentElement.classList.remove('select-open');
+              filterTable();
+            });
+          });
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('.select-wrap')) {
+            document.querySelectorAll('.select-wrap').forEach(wrap => wrap.classList.remove('select-open'));
+          }
+        });
+      };
+      
+      // Filter and search functionality
+      const filterTable = () => {
+        const searchTerm = document.getElementById('teacherSearch')?.value.toLowerCase().trim() || '';
+        const classFilter = document.getElementById('classFilter')?.value || '';
+        const yearFilter = document.getElementById('yearGroupFilter')?.value || '';
+        const bookStatusFilter = document.getElementById('bookStatusFilter')?.value || '';
+        
+        const allRows = document.querySelectorAll('tbody tr');
+        let visibleCount = 0;
+        
+        allRows.forEach(row => {
+          const studentCell = row.cells[1]; // Student name column (index 1)
+          const studentName = studentCell ? studentCell.textContent.toLowerCase() : '';
+          const className = row.dataset.class || '';
+          const yearGroup = row.dataset.yearGroup || '';
+          const bookStatus = row.dataset.bookStatus || '';
+          
+          // Check all filter criteria
+          const matchesSearch = !searchTerm || studentName.includes(searchTerm);
+          const matchesClass = !classFilter || className === classFilter;
+          const matchesYear = !yearFilter || yearGroup === yearFilter;
+          const matchesBookStatus = !bookStatusFilter || bookStatus === bookStatusFilter;
+          
+          const isVisible = matchesSearch && matchesClass && matchesYear && matchesBookStatus;
+          
+          if (isVisible) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        console.log(`Filtered ${visibleCount} out of ${allRows.length} rows`);
+      };
+      
+      // Initialize selects and add search event listener
+      initializeTeacherSelects();
+      
+      // Search functionality (integrated with filters)
+      const searchInput = document.getElementById('teacherSearch');
+      if (searchInput) {
+        searchInput.addEventListener('input', filterTable);
+      }
       // Handle return status toggle buttons
       document.querySelectorAll('.toggle-return-btn').forEach(button => {
         button.addEventListener('click', async function() {
@@ -193,23 +445,6 @@
           }
         });
       });
-      
-      // Search functionality
-      const searchInput = document.getElementById('teacherSearch');
-      if (searchInput) {
-        searchInput.addEventListener('input', function() {
-          const searchTerm = this.value.toLowerCase();
-          const rows = document.querySelectorAll('tbody tr');
-          
-          rows.forEach(row => {
-            const studentCell = row.cells[1]; // Student name column
-            if (studentCell) {
-              const studentName = studentCell.textContent.toLowerCase();
-              row.style.display = studentName.includes(searchTerm) ? '' : 'none';
-            }
-          });
-        });
-      }
     });
     
     function showMessage(message, type) {
@@ -236,7 +471,7 @@
     }
   </script>
   
-  <script type="module" src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
 

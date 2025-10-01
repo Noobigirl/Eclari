@@ -106,8 +106,20 @@ def create_app() -> Flask:
                     'hall_name': user.get('hall_name')
                 }
             
+            # Check finance_staff table
+            finance_staff = supabase.table('finance_staff').select('*').eq('auth_uid', auth_uid).execute()
+            if finance_staff.data:
+                user = finance_staff.data[0]
+                return {
+                    'id': user['finance_id'],
+                    'auth_uid': auth_uid,
+                    'first_name': user['first_name'],
+                    'last_name': user['last_name'],
+                    'role': 'finance'
+                }
+            
             # Add checks for other staff tables as needed
-            # finance, coaches, etc.
+            # coaches, lab staff, etc.
             
             return None
             

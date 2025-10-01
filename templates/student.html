@@ -25,7 +25,7 @@
       </a>
       <nav class="nav">
         <span class="chip">Student</span>
-        <button id="logoutBtn" class="button">Sign out</button>
+        <a class="button" href="{{ url_for('logout') }}">Sign out</a>
       </nav>
     </div>
   </header>
@@ -119,7 +119,7 @@
             </div>
             <div style="display: flex; justify-content: space-between; font-weight: bold;">
               <span>Balance:</span>
-              <!-- <span {% if financial_overview.balance > 0 %}style="color: var(--error);"{% endif %}>${{ "%.2f"|format(financial_overview.balance) }}</span> -->
+              <span {% if financial_overview.balance > 0 %}style="color: var(--error);"{% endif %}>${{ "%.2f"|format(financial_overview.balance) }}</span>
             </div>
             <div style="text-align: center; margin-top: 8px;">
               <span class="badge {% if financial_overview.status == 'Paid' %}badge-success{% elif financial_overview.status == 'Partial' %}badge-warning{% else %}badge-error{% endif %}">
@@ -227,8 +227,29 @@
     // Set progress bar colors based on percentage (server-calculated)
     document.addEventListener('DOMContentLoaded', function() {
       setProgressBarColors();
+      animateProgressBars();
     });
-    
+
+    function animateProgressBars() {
+      // Animate overall progress bar
+      const overallFill = document.getElementById('overallFill');
+      if (overallFill) {
+        const targetWidth = overallFill.getAttribute('data-width');
+        setTimeout(() => {
+          overallFill.style.width = targetWidth;
+        }, 500);
+      }
+
+      // Animate subject progress bars
+      const subjectProgressBars = document.querySelectorAll('.clearance-progress .progress-fill');
+      subjectProgressBars.forEach((bar, index) => {
+        const targetWidth = bar.getAttribute('data-width');
+        setTimeout(() => {
+          bar.style.width = targetWidth;
+        }, 700 + (index * 100)); // Stagger animations
+      });
+    }
+
     function setProgressBarColors() {
       const overallPct = parseInt(document.getElementById('overallPct').textContent);
       const progressFill = document.getElementById('overallFill');
@@ -244,7 +265,8 @@
       // Set colors for subject progress bars too
       const subjectProgressBars = document.querySelectorAll('.clearance-progress .progress-fill');
       subjectProgressBars.forEach(bar => {
-        const width = parseInt(bar.style.width);
+        const targetWidth = bar.getAttribute('data-width');
+        const width = parseInt(targetWidth);
         if (width === 100) {
           bar.style.background = 'var(--success)';
         } else if (width >= 50) {

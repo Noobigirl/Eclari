@@ -488,22 +488,103 @@
       `;
       teacherTable.appendChild(tr);
     });
-    // Signature pad
-    const canvas = $('#sigPad');
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      let drawing = false; let last = null;
-      canvas.addEventListener('pointerdown', (e) => { drawing = true; last = [e.offsetX, e.offsetY]; });
-      canvas.addEventListener('pointerup', () => { drawing = false; last = null; });
-      canvas.addEventListener('pointermove', (e) => {
-        if (!drawing) return; const [lx, ly] = last; const x = e.offsetX, y = e.offsetY; ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke(); last = [x, y];
-      });
-      $('#clearSig')?.addEventListener('click', () => { ctx.clearRect(0,0,canvas.width, canvas.height); });
-      $('#saveSig')?.addEventListener('click', () => { alert('Signature saved (mock).'); });
-    }
   }
 
-  // Finance dashboard mock
+  // Signature pad functionality (moved outside conditional blocks)
+  const canvas = $('#sigPad');
+  if (canvas) {
+    console.log('Signature canvas found, initializing...'); // Debug log
+    const ctx = canvas.getContext('2d');
+    let drawing = false; 
+    let last = null;
+    
+    // Set initial canvas style
+    ctx.strokeStyle = '#4A2323'; // ALA maroon color
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    // Function to get coordinates (works for both mouse and touch)
+    const getCoords = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      return [clientX - rect.left, clientY - rect.top];
+    };
+    
+    // Hide/show prompt text
+    const signaturePrompt = $('#signaturePrompt');
+    const hidePrompt = () => {
+      if (signaturePrompt) signaturePrompt.style.display = 'none';
+    };
+    const showPrompt = () => {
+      if (signaturePrompt) signaturePrompt.style.display = 'block';
+    };
+    
+    // Check if canvas has content
+    const hasContent = () => {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      return imageData.data.some(channel => channel !== 0);
+    };
+    
+    // Mouse/Touch events
+    const startDrawing = (e) => {
+      console.log('Start drawing triggered'); // Debug log
+      e.preventDefault();
+      drawing = true; 
+      last = getCoords(e);
+      hidePrompt();
+    };
+    
+    const stopDrawing = (e) => {
+      e.preventDefault();
+      drawing = false; 
+      last = null;
+    };
+    
+    const draw = (e) => {
+      e.preventDefault();
+      if (!drawing) return; 
+      const [lx, ly] = last; 
+      const [x, y] = getCoords(e);
+      
+      ctx.beginPath(); 
+      ctx.moveTo(lx, ly); 
+      ctx.lineTo(x, y); 
+      ctx.stroke(); 
+      last = [x, y];
+    };
+    
+    // Add event listeners for both mouse and touch
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDrawing);
+    
+    console.log('Signature event listeners added'); // Debug log
+    
+    // Prevent scrolling when touching the canvas
+    canvas.addEventListener('touchstart', (e) => e.preventDefault());
+    canvas.addEventListener('touchmove', (e) => e.preventDefault());
+    
+    $('#clearSig')?.addEventListener('click', () => { 
+      ctx.clearRect(0, 0, canvas.width, canvas.height); 
+      showPrompt();
+    });
+    
+    $('#saveSig')?.addEventListener('click', () => { 
+      if (!hasContent()) {
+        alert('Please draw a signature before saving.');
+        return;
+      }
+      // Convert canvas to image data
+      const imageData = canvas.toDataURL();
+      // Here you could send this to your server
+      alert('Signature saved successfully!'); 
+    });
+  }  // Finance dashboard mock
   const financeTable = $('#financeTable tbody');
   if (financeTable) {
     const students = [

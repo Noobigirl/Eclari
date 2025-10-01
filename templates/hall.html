@@ -25,20 +25,20 @@
       </a>
       <nav class="nav">
         <span class="chip">Hall Head</span>
-        <a class="button" href="{{ url_for('login') }}">Sign out</a>
+        <a class="button" href="{{ url_for('logout') }}">Sign out</a>
       </nav>
     </div>
   </header>
 
   <main class="container">
     <!-- Header Section -->
-    <div class="dashboard-header animate-fadeInUp">
+    <div class="dashboard-header animate-fadeInUp" style="margin-bottom: 24px;">
       <div>
         <h1 style="margin:0; font-size: 2rem; font-weight: 700; color: var(--ala-gold);">
           {{ hall_name }} Hall Management
         </h1>
         <p style="margin: 8px 0 0; color: var(--muted); font-size: 1.1rem;">
-          Managing {{ hall_students|length }} students • Hall Head: {{ user.first_name }} {{ user.last_name }}
+          Hall Head: {{ user.first_name }} {{ user.last_name }}
         </p>
       </div>
       
@@ -88,34 +88,54 @@
       </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="hall-stats animate-fadeInUp stagger-1">
-      <div class="stat-card">
-        <div class="stat-number">{{ hall_students|length }}</div>
-        <div class="stat-label">Total Residents</div>
-      </div>
-      <div class="stat-card stat-success">
-        <div class="stat-number">
-          {{ hall_students|selectattr('hall_clearance_status', 'equalto', 'approved')|list|length }}
+    <!-- Main Content Layout -->
+    <div style="display: grid; grid-template-columns: 400px 1fr; gap: 24px; align-items: start; margin-bottom: 24px;">
+      <!-- Left Sidebar - Hall Summary -->
+      <div class="hall-summary animate-fadeInLeft">
+        <div class="card glass" style="padding: 24px;">
+          <h3 style="margin: 0 0 20px; font-size: 1.3rem; font-weight: 600; color: var(--ala-maroon);">Hall Overview</h3>
+          
+          <div class="summary-item">
+            <div class="summary-number">{{ hall_students|length }}</div>
+            <div class="summary-label">Total Residents</div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-number" style="color: var(--success);">
+              {{ hall_students|selectattr('hall_clearance_status', 'equalto', 'approved')|list|length }}
+            </div>
+            <div class="summary-label">Hall Approved</div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-number" style="color: var(--warning);">
+              {{ hall_students|selectattr('room_status', 'equalto', 'needs_attention')|list|length }}
+            </div>
+            <div class="summary-label">Needs Attention</div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-number" style="color: var(--muted);">
+              {{ hall_students|selectattr('room_status', 'equalto', 'clean')|list|length }}
+            </div>
+            <div class="summary-label">Rooms Ready</div>
+          </div>
+
+          <div class="summary-item" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div class="summary-text">
+              <strong>Clearance Progress:</strong><br>
+              {{ ((hall_students|selectattr('hall_clearance_status', 'equalto', 'approved')|list|length / hall_students|length * 100) if hall_students|length > 0 else 0)|round(1) }}% Complete
+            </div>
+          </div>
         </div>
-        <div class="stat-label">Hall Approved</div>
       </div>
-      <div class="stat-card stat-warning">
-        <div class="stat-number">
-          {{ hall_students|selectattr('room_status', 'equalto', 'needs_attention')|list|length }}
-        </div>
-        <div class="stat-label">Need Attention</div>
-      </div>
-      <div class="stat-card stat-neutral">
-        <div class="stat-number">
-          {{ hall_students|selectattr('room_status', 'equalto', 'clean')|list|length }}
-        </div>
-        <div class="stat-label">Rooms Ready</div>
-      </div>
+
+      <!-- Right Content - Empty space or additional info -->
+      <div></div>
     </div>
 
-    <!-- Students Table -->
-    <div class="card glass animate-fadeInUp stagger-2" style="padding: 0; overflow: hidden;">
+    <!-- Students Table - Full Width Below -->
+    <div class="card glass animate-fadeInUp" style="padding: 0; overflow: hidden;">
       <div class="table-header">
         <h3 style="margin: 0; padding: 24px 24px 0; font-size: 1.4rem; font-weight: 600;">Student Clearance Status</h3>
         <div class="table-actions" style="padding: 0 24px 16px;">
@@ -195,6 +215,7 @@
         <p>No students are currently assigned to rooms in this hall.</p>
       </div>
       {% endif %}
+      </div>
     </div>
   </main>
 

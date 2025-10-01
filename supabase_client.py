@@ -150,7 +150,8 @@ def get_books_by_subject(subject_id):
             student_id (
                 student_id,
                 first_name,
-                last_name
+                last_name,
+                year_group
             )
         ''').eq('subject_id', subject_id).execute()
         return result.data
@@ -161,6 +162,51 @@ def get_books_by_subject(subject_id):
 # ===============================
 # FINANCE DATA FUNCTIONS
 # ===============================
+
+def get_finance_staff_by_id(finance_id):
+    """Get finance staff details by finance_id"""
+    try:
+        result = supabase.table('finance_staff').select('*').eq('finance_id', finance_id).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error getting finance staff: {e}")
+        return None
+
+def get_financial_overview():
+    """Get financial overview statistics for finance dashboard"""
+    try:
+        # Get all financial records
+        all_records = supabase.table('finance').select('*').execute()
+        
+        if not all_records.data:
+            return {
+                'total_tuition': 0,
+                'total_paid': 0,
+                'total_outstanding': 0,
+                'paid_count': 0,
+                'partial_count': 0,
+                'outstanding_count': 0
+            }
+        
+        total_tuition = sum(record['tuition_due'] for record in all_records.data)
+        total_paid = sum(record['amount_paid'] for record in all_records.data)
+        total_outstanding = sum(record['balance'] for record in all_records.data)
+        
+        paid_count = len([r for r in all_records.data if r['status'] == 'Paid'])
+        partial_count = len([r for r in all_records.data if r['status'] == 'Partial'])
+        outstanding_count = len([r for r in all_records.data if r['status'] == 'Outstanding'])
+        
+        return {
+            'total_tuition': total_tuition,
+            'total_paid': total_paid,
+            'total_outstanding': total_outstanding,
+            'paid_count': paid_count,
+            'partial_count': partial_count,
+            'outstanding_count': outstanding_count
+        }
+    except Exception as e:
+        print(f"Error getting financial overview: {e}")
+        return None
 
 def get_all_financial_records():
     """Get all financial records with student details"""

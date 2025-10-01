@@ -863,42 +863,42 @@ select option:checked {
 /* Subject color assignments */
 .subject-card[data-subject="MATH"] .subject-card-banner,
 .subject-card-banner[data-subject="MATH"] {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #667eea;
 }
 
 .subject-card[data-subject="ENG"] .subject-card-banner,
 .subject-card-banner[data-subject="ENG"] {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #f5576c;
 }
 
 .subject-card[data-subject="PE"] .subject-card-banner,
 .subject-card-banner[data-subject="PE"] {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #4facfe;
 }
 
 .subject-card[data-subject="SCI"] .subject-card-banner,
 .subject-card-banner[data-subject="SCI"] {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #43e97b;
 }
 
 .subject-card[data-subject="HIST"] .subject-card-banner,
 .subject-card-banner[data-subject="HIST"] {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #fa709a;
 }
 
 .subject-card[data-subject="ART"] .subject-card-banner,
 .subject-card-banner[data-subject="ART"] {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  background: #a8edea;
 }
 
 .subject-card[data-subject="MUSIC"] .subject-card-banner,
 .subject-card-banner[data-subject="MUSIC"] {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  background: #ffecd2;
 }
 
 /* Default fallback for unknown subjects */
 .subject-card:not([data-subject*="MATH"]):not([data-subject*="ENG"]):not([data-subject*="PE"]):not([data-subject*="SCI"]):not([data-subject*="HIST"]):not([data-subject*="ART"]):not([data-subject*="MUSIC"]) .subject-card-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #667eea;
 }
 
 .subject-card:hover {
@@ -1716,4 +1716,73 @@ input, select {
     padding: 16px;
     min-height: 60px;
   }
+}
+
+/* Class Card Styles for Teacher Page */
+.class-card {
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.class-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(74, 35, 35, 0.15);
+  border-color: var(--ala-gold);
+}
+
+.class-card:active {
+  transform: translateY(0);
+}
+
+.class-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.class-card:hover::before {
+  left: 100%;
+}
+
+/* Badge styling */
+.badge-primary {
+  background: var(--ala-maroon);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Hall Summary Styles */
+.hall-summary .summary-item {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.hall-summary .summary-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ala-maroon);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.hall-summary .summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.hall-summary .summary-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
 }
