@@ -1,13 +1,52 @@
 """
-Eclari - African Leadership Academy Student Clearance System
-Main Flask application handling authentication, routing, and dashboard management.
+ECLARI - Enhanced Clearance System for Academic Resource Integration
 
-This system handles student clearance processes including academic, financial, 
-and hall clearance for different user roles (students, teachers, hall staff, finance).
+A comprehensive Flask web application for managing academic clearance processes.
+This system handles student clearance tracking across multiple departments:
+- Academic (Teachers) - subject-based book and material returns
+- Financial (Finance Staff) - tuition and fee payments  
+- Residential (Hall Staff) - dormitory clearance and room assignments
+- Laboratory (Lab Staff) - science equipment and materials
+- Sports (Coaches) - PE equipment and sports materials
 
-Author: Built with love for ALA students
-Date: 2025
+Key Features:
+- Role-based authentication with Supabase integration
+- Real-time clearance percentage calculations
+- Staff dashboards for managing their respective clearance areas
+- Student dashboard for tracking personal clearance progress
+- API endpoints for dynamic frontend interactions
+
+Built with Flask 3.x, Supabase for backend services, and modern web technologies.
 """
+
+# ===== CORE IMPORTS =====
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from functools import wraps
+from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+# ===== LOCAL IMPORTS =====
+# Our custom modules for database operations and business logic
+from supabase_client import (
+    supabase, supabase_url, supabase_anon_key,
+    # Student data functions
+    get_student_classes, get_student_books, get_student_materials, 
+    get_student_financial_overview, get_student_room,
+    # Teacher data functions  
+    get_teacher_classes, get_students_in_class, get_all_subjects, get_books_by_subject,
+    # Finance data functions
+    get_all_financial_records, get_all_students, get_financial_record,
+    # Hall data functions
+    get_hall_head_by_id, get_rooms_by_hall, get_students_by_hall_with_clearance,
+    # Lab/Coach data functions
+    get_materials_by_subject, get_all_materials,
+    # Clearance calculation functions
+    calculate_subject_clearance_percentage, calculate_subject_clearance_status,
+    calculate_overall_clearance_percentage, calculate_overall_clearance_status,
+    # Search and utility functions
+    search_students
+)
 
 # Core Flask imports for web framework functionality
 from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify
@@ -71,47 +110,52 @@ def create_app() -> Flask:
     supabase_url = os.getenv('SUPABASE_URL')
     supabase_anon_key = os.getenv('SUPABASE_ANON_KEY')
     
-    def verify_supabase_token(f):
-        """
-        Authentication decorator that protects routes with Supabase JWT verification.
-        
-        This decorator does several important things:
-        1. Checks for a valid Supabase token in cookies
-        2. Verifies the token with Supabase auth service
-        3. Looks up the user's role and data in our database
-        4. Stores user info in the session for the request
-        
-        If any step fails, redirects to login with an appropriate error message.
-        
-        Args:
-            f: The route function to protect
-            
-        Returns:
-            The decorated function with authentication checks
-        """
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # Try to get the authentication token from browser cookies
-            # This token is set by our JavaScript auth code after login
+def verify_supabase_token(f):
+    """
+    Decorator to verify Supabase authentication and populate session with user data.
+    
+    This is the CRITICAL security layer that:
+    1. Validates the user's authentication token with Supabase
+    2. Looks up the user's role in our database 
+    3. Populates the session with fresh user data
+    4. Prevents role confusion through aggressive session clearing
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            # Step 1: Get authentication token from cookies
             token = request.cookies.get('supabase-token')
             
             if not token:
-                flash('Please log in to access this page.', 'error')
+                # No token = not authenticated, send to login
+                flash('Please log in to access this page.', 'info')
                 return redirect(url_for('login'))
             
+            # Step 2: Verify token with Supabase and get user ID
             try:
-                # Verify the JWT token with Supabase to make sure it's valid
-                # This calls Supabase's auth service to check the token
+                # This calls Supabase's API to validate the JWT token
                 response = supabase.auth.get_user(token)
                 
-                if response.user is None:
-                    raise ValueError("Invalid token")
+                if not response.user:
+                    # Token is invalid or expired
+                    flash('Your session has expired. Please log in again.', 'warning')
+                    # Clear session and redirect to login
+                    session.clear()
+                    return redirect(url_for('login'))
+                    
+                # Extract the Supabase user ID (this connects to our tables)
+                auth_uid = response.user.id
                 
-                # Extract user information from the verified token
-                auth_uid = response.user.id  # Unique user ID from Supabase Auth
-                email = response.user.email
-                
-                # Now find out what role this user has in our system
+            except Exception as token_error:
+                # Token verification failed (network issues, invalid token, etc.)
+                print(f"Token verification error: {token_error}")
+                flash('Authentication error. Please log in again.', 'error')
+                session.clear()
+                return redirect(url_for('login'))
+            
+            # Step 3: Get user data from our database tables
+            # CRITICAL: Always use fresh database lookup, never trust cached session data
+            if True:  # Force fresh lookup every time to prevent role confusion
                 # This checks our database tables (students, teachers, etc.)
                 user_data = get_user_data_by_auth_uid(auth_uid)
                 
@@ -121,99 +165,139 @@ def create_app() -> Flask:
                     flash('User not found in system. Please contact administrator.', 'error')
                     return redirect(url_for('login'))
                 
+                # DEBUG: Always log the role detection for troubleshooting
+                print(f"DEBUG AUTH: User {user_data.get('first_name')} {user_data.get('last_name')} detected as {user_data.get('role')} (auth_uid: {auth_uid})")
+                
+                # Check for role mismatches BEFORE updating session
+                # This prevents stale session data from causing role confusion
+                cached_user = session.get('user', {})
+                if cached_user.get('auth_uid') == auth_uid:
+                    if cached_user.get('role') != user_data.get('role'):
+                        # Role has changed - clear session completely
+                        print(f"DEBUG: Role mismatch detected for {auth_uid}. Cached: {cached_user.get('role')}, Fresh: {user_data.get('role')}")
+                        session.clear()
+                    else:
+                        # Same user, same role - but force refresh session anyway to prevent any caching issues
+                        print(f"DEBUG: Refreshing session for {user_data.get('role')} user {user_data.get('first_name')}")
+                        session.clear()
+                
                 # Store user information in the session for this request
-                # This lets the route function access user data easily
+                # Always use the fresh data from database lookup
                 session['user'] = user_data
+                session.permanent = True  # Keep session active longer
                 
-                # All checks passed! Call the actual route function
-                return f(*args, **kwargs)
-                
-            except Exception as e:
-                # Something went wrong with token verification
-                # Could be expired token, network issue, etc.
-                print(f"Token verification error: {e}")
-                flash('Your session has expired. Please log in again.', 'error')
-                return redirect(url_for('login'))
-        
-        return decorated_function
-    
-    def get_user_data_by_auth_uid(auth_uid):
-        """
-        Look up user data across all role tables using Supabase Auth UID.
-        
-        This function is crucial for our role-based system! It checks each
-        role table (students, teachers, hall_heads, finance_staff) to find
-        where this authenticated user belongs.
-        
-        Args:
-            auth_uid (str): The unique user ID from Supabase Auth
-            
-        Returns:
-            dict: User data with role info, or None if not found
-        """
-        try:
-            # Check students table first (most common users)
-            student = supabase.table('students').select('*').eq('auth_uid', auth_uid).execute()
-            if student.data:
-                user = student.data[0]
-                return {
-                    'id': user['student_id'],
-                    'auth_uid': auth_uid,
-                    'first_name': user['first_name'],
-                    'last_name': user['last_name'],
-                    'role': 'student',
-                    'year_group': user.get('year_group')  # Year group for academic tracking
-                }
-            
-            # Check teachers table
-            teacher = supabase.table('teachers').select('*').eq('auth_uid', auth_uid).execute()
-            if teacher.data:
-                user = teacher.data[0]
-                return {
-                    'id': user['teacher_id'],
-                    'auth_uid': auth_uid,
-                    'first_name': user['first_name'],
-                    'last_name': user['last_name'],
-                    'role': 'teacher'
-                }
-            
-            # Check hall heads table (residential staff)
-            hall_head = supabase.table('hall_heads').select('*').eq('auth_uid', auth_uid).execute()
-            if hall_head.data:
-                user = hall_head.data[0]
-                return {
-                    'id': user['hall_id'],
-                    'auth_uid': auth_uid,
-                    'first_name': user['first_name'],
-                    'last_name': user['last_name'],
-                    'role': 'hall',
-                    'hall_name': user.get('hall_name')  # Which hall they manage
-                }
-            
-            # Check finance_staff table (handles all financial clearance)
-            finance_staff = supabase.table('finance_staff').select('*').eq('auth_uid', auth_uid).execute()
-            if finance_staff.data:
-                user = finance_staff.data[0]
-                return {
-                    'id': user['finance_id'],
-                    'auth_uid': auth_uid,
-                    'first_name': user['first_name'],
-                    'last_name': user['last_name'],
-                    'role': 'finance'  # Special role for financial clearance management
-                }
-            
-            # Future: Add checks for other staff tables as needed
-            # Could include: coaches, lab staff, librarians, etc.
-            # Each would follow the same pattern as above
-            
-            # User authenticated but not found in any role table
-            return None
+            # Step 4: Continue to the protected route
+            return f(*args, **kwargs)
             
         except Exception as e:
-            # Log the error for debugging but don't expose details to user
-            print(f"Error getting user data: {e}")
-            return None
+            # Catch-all error handler for any authentication issues
+            print(f"Authentication decorator error: {e}")
+            flash('Authentication system error. Please try logging in again.', 'error')
+            # Clear session completely to force fresh authentication
+            session.clear()
+            return redirect(url_for('login'))
+    
+    return decorated_function
 
+def get_user_data_by_auth_uid(auth_uid):
+    """
+    Look up user data across all role tables using Supabase Auth UID.
+    
+    This function is crucial for our role-based system! It checks each
+    role table (students, teachers, hall_heads, finance_staff) to find
+    where this authenticated user belongs.
+    
+    Args:
+        auth_uid (str): The unique user ID from Supabase Auth
+        
+    Returns:
+        dict: User data with role info, or None if not found
+    """
+    try:
+        # Check students table first (most common users)
+        student = supabase.table('students').select('*').eq('auth_uid', auth_uid).execute()
+        if student.data:
+            user = student.data[0]
+            return {
+                'id': user['student_id'],
+                'auth_uid': auth_uid,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': 'student',
+                'year_group': user.get('year_group')  # Year group for academic tracking
+        }
+        
+        # Check teachers table
+        teacher = supabase.table('teachers').select('*').eq('auth_uid', auth_uid).execute()
+        if teacher.data:
+            user = teacher.data[0]
+            return {
+                'id': user['teacher_id'],
+                'auth_uid': auth_uid,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': 'teacher'
+            }
+        
+        # Check hall heads table (residential staff)
+        hall_head = supabase.table('hall_heads').select('*').eq('auth_uid', auth_uid).execute()
+        if hall_head.data:
+            user = hall_head.data[0]
+            return {
+                'id': user['hall_id'],
+                'auth_uid': auth_uid,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': 'hall',
+                'hall_name': user.get('hall_name')  # Which hall they manage
+            }
+        
+        # Check finance_staff table (handles all financial clearance)
+        finance_staff = supabase.table('finance_staff').select('*').eq('auth_uid', auth_uid).execute()
+        if finance_staff.data:
+            user = finance_staff.data[0]
+            return {
+                'id': user['finance_id'],
+                'auth_uid': auth_uid,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': 'finance'  # Special role for financial clearance management
+            }
+        
+        # Future: Add checks for other staff tables as needed
+        # Could include: coaches, lab staff, librarians, etc.
+        # Each would follow the same pattern as above
+        
+        # User authenticated but not found in any role table
+        return None
+        
+    except Exception as e:
+        # Log the error for debugging but don't expose details to user
+        print(f"Error getting user data: {e}")
+        return None
+
+
+def create_app():
+    """
+    Application factory function for creating the Flask app instance.
+    
+    This function sets up all the routes, configurations, and middleware
+    needed for the Eclari application to run properly.
+    
+    Returns:
+        Flask: Configured Flask application instance
+    """
+    # Initialize Flask application with custom settings
+    app = Flask(__name__)
+    
+    # Load environment variables for configuration
+    load_dotenv()
+    
+    # Set Flask configuration
+    app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_TYPE'] = 'filesystem'
+    
     # ===== ROUTE DEFINITIONS =====
     # Main application routes handling different pages and functionality
 
@@ -257,6 +341,23 @@ def create_app() -> Flask:
         return render_template("login.html", 
                              supabase_url=supabase_url, 
                              supabase_anon_key=supabase_anon_key)
+
+    @app.route("/auto-redirect")
+    @verify_supabase_token
+    def auto_redirect():
+        """
+        Smart redirect route that automatically sends users to their correct dashboard.
+        
+        This is called after login to ensure users go to the right place based on 
+        their actual role in the database (not what they selected on the login form).
+        """
+        user = session.get('user', {})
+        role = user.get('role', 'student')
+        
+        print(f"Auto-redirect: User {user.get('first_name')} {user.get('last_name')} has role {role}")
+        
+        # Redirect to the appropriate dashboard
+        return redirect(url_for('dashboard', role=role))
 
     @app.route("/dashboard/<role>")
     @verify_supabase_token
@@ -406,6 +507,233 @@ def create_app() -> Flask:
         response.set_cookie('user-info', '', expires=0, path='/')
         
         flash('You have been logged out successfully.', 'info')
+        return response
+
+    # ===== SESSION MANAGEMENT ROUTES =====
+    # New route to completely reset user session - useful for debugging auth issues
+    @app.route('/reset-session')
+    def reset_session():
+        """Completely clear all session data and force fresh authentication"""
+        session.clear()
+        # Also clear any potential server-side cache by forcing a new session ID
+        session.permanent = False
+        session.modified = True
+        
+        flash('Session completely reset. Please log in again.', 'info')
+        return redirect(url_for('login'))
+
+    # Debug route to check current session state
+    @app.route('/debug/session')
+    def debug_session():
+        """Show current session contents for debugging"""
+        if 'debug' not in session:
+            session['debug'] = True
+        
+        session_info = {
+            'session_keys': list(session.keys()),
+            'user_data': session.get('user', 'None'),
+            'session_id': session.get('_id', 'No ID'),
+            'permanent': session.permanent,
+            'modified': session.modified
+        }
+        
+        return jsonify(session_info)
+
+    # Enhanced debug route with comprehensive authentication testing
+    @app.route('/debug/auth-test')
+    def debug_auth_test():
+        """Comprehensive authentication test for all user roles"""
+        try:
+            # Get current Supabase user
+            user = supabase.auth.get_user()
+            if not user.user:
+                return jsonify({"error": "No authenticated user", "instructions": "Please log in first"})
+            
+            auth_uid = user.user.id
+            
+            # Test role detection logic step by step
+            auth_test_results = {
+                "current_auth_uid": auth_uid,
+                "timestamp": str(datetime.now()),
+                "test_steps": []
+            }
+            
+            # Step 1: Check each table individually
+            tables_check = {}
+            for table_name in ['students', 'teachers', 'hall_heads', 'finance_staff']:
+                try:
+                    result = supabase.table(table_name).select('*').eq('auth_uid', auth_uid).execute()
+                    tables_check[table_name] = {
+                        "found": len(result.data) > 0,
+                        "count": len(result.data),
+                        "data": result.data[0] if result.data else None
+                    }
+                except Exception as e:
+                    tables_check[table_name] = {"error": str(e)}
+            
+            auth_test_results["table_checks"] = tables_check
+            
+            # Step 2: Test role detection function
+            try:
+                detected_user = get_user_data_by_auth_uid(auth_uid)
+                auth_test_results["role_detection"] = {
+                    "success": detected_user is not None,
+                    "detected_role": detected_user.get('role') if detected_user else None,
+                    "detected_user": detected_user
+                }
+            except Exception as e:
+                auth_test_results["role_detection"] = {"error": str(e)}
+            
+            # Step 3: Check current session state
+            auth_test_results["session_state"] = {
+                "session_exists": 'user' in session,
+                "session_user": session.get('user', None),
+                "session_keys": list(session.keys())
+            }
+            
+            # Step 4: Generate recommendations
+            recommendations = []
+            
+            # Check for multiple role assignments (shouldn't happen)
+            role_count = sum(1 for table, data in tables_check.items() if data.get('found', False))
+            if role_count == 0:
+                recommendations.append("❌ User not found in any role table - check database setup")
+            elif role_count > 1:
+                recommendations.append("⚠️ User found in multiple role tables - data integrity issue")
+            else:
+                recommendations.append("✅ User found in exactly one role table - correct setup")
+            
+            # Check session consistency
+            if auth_test_results["session_state"]["session_exists"]:
+                session_role = session.get('user', {}).get('role')
+                detected_role = auth_test_results["role_detection"].get("detected_role")
+                if session_role == detected_role:
+                    recommendations.append("✅ Session role matches detected role")
+                else:
+                    recommendations.append(f"⚠️ Session role ({session_role}) doesn't match detected role ({detected_role})")
+            else:
+                recommendations.append("ℹ️ No session data - will be populated on next protected route access")
+            
+            auth_test_results["recommendations"] = recommendations
+            
+            return jsonify(auth_test_results)
+            
+        except Exception as e:
+            return jsonify({"error": f"Auth test failed: {str(e)}"})
+
+    @app.route('/debug/force-refresh')
+    def debug_force_refresh():
+        """Force complete session refresh and redirect to appropriate dashboard"""
+        try:
+            # Clear everything
+            session.clear()
+            
+            # Get current user
+            user = supabase.auth.get_user()
+            if not user.user:
+                flash('No authenticated user found.', 'error')
+                return redirect(url_for('login'))
+            
+            auth_uid = user.user.id
+            
+            # Force fresh lookup
+            user_data = get_user_data_by_auth_uid(auth_uid)
+            
+            if user_data:
+                # Force session update with fresh data
+                session['user'] = user_data
+                session.permanent = True
+                flash(f'Session refreshed! You are logged in as {user_data["role"]}: {user_data["first_name"]} {user_data["last_name"]}', 'success')
+                
+                # Redirect to appropriate dashboard
+                role = user_data['role']
+                return redirect(url_for('dashboard', role=role))
+            else:
+                flash('User not found in any role table.', 'error')
+                return redirect(url_for('login'))
+                
+        except Exception as e:
+            flash(f'Error during refresh: {str(e)}', 'error')
+            return redirect(url_for('login'))
+
+    @app.route("/debug/role")
+    @verify_supabase_token  
+    def debug_role():
+        """Debug route to check current user role detection"""
+        user = session.get('user', {})
+        token = request.cookies.get('supabase-token')
+        
+        debug_info = {
+            'session_user': user,
+            'token_present': bool(token)
+        }
+        
+        if token:
+            try:
+                response = supabase.auth.get_user(token)
+                if response.user:
+                    auth_uid = response.user.id
+                    fresh_user_data = get_user_data_by_auth_uid(auth_uid)
+                    debug_info.update({
+                        'auth_uid': auth_uid,
+                        'fresh_lookup': fresh_user_data,
+                        'role_match': user.get('role') == fresh_user_data.get('role') if fresh_user_data else False
+                    })
+            except Exception as e:
+                debug_info['error'] = str(e)
+                
+        return f"<pre>{debug_info}</pre>"
+
+    @app.route("/fix-gon-role")
+    def fix_gon_role():
+        """Emergency fix for Gon's role - forces finance role assignment"""
+        # Get token to verify it's actually Gon
+        token = request.cookies.get('supabase-token')
+        if not token:
+            return redirect(url_for('login'))
+            
+        try:
+            response = supabase.auth.get_user(token)
+            if response.user and response.user.id == 'b9906ec1-fca7-41f3-8ac6-caa6b9bc9cd9':
+                # This is Gon - force set as finance
+                session.clear()  # Clear any cached data
+                session['user'] = {
+                    'id': 'FIN002',
+                    'auth_uid': 'b9906ec1-fca7-41f3-8ac6-caa6b9bc9cd9',
+                    'first_name': 'Gon',
+                    'last_name': 'Freecs',
+                    'role': 'finance'
+                }
+                flash('Role fixed! You are now logged in as Finance Staff.', 'success')
+                return redirect(url_for('dashboard', role='finance'))
+            else:
+                flash('This fix is only for Gon Freecs.', 'error')
+                return redirect(url_for('login'))
+        except Exception as e:
+            print(f"Fix route error: {e}")
+            return redirect(url_for('login'))
+
+    @app.route("/force-logout")
+    def force_logout():
+        """Force complete logout - clears all session data and cookies"""
+        # Clear Flask session
+        session.clear()
+        
+        # Create response with redirect to login
+        response = redirect(url_for('login'))
+        
+        # Clear all possible authentication cookies
+        response.set_cookie('supabase-token', '', expires=0, path='/')
+        response.set_cookie('user-info', '', expires=0, path='/')
+        response.set_cookie('sb-access-token', '', expires=0, path='/')
+        response.set_cookie('sb-refresh-token', '', expires=0, path='/')
+        
+        # Add cache control headers to prevent caching
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        flash('Forced logout completed. Please log in again.', 'info')
         return response
 
     # ===== LEGACY ROUTE REDIRECTS =====
@@ -636,4 +964,4 @@ app = create_app()
 # Development server runner  
 # In production, use a proper WSGI server like gunicorn
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

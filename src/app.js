@@ -171,28 +171,13 @@ import {
         }
 
         if (user && session) {
-          // Get user role from Supabase metadata
-          const userRole = getUserRole(user);
+          // Store session for Flask to verify
+          console.log(`Login successful for ${user.email}`);
           
-          // Validate that selected role matches user's actual role (optional - you might want to skip this)
-          // if (userRole !== selectedRole) {
-          //   console.warn(`User role (${userRole}) doesn't match selected role (${selectedRole}), using user role`);
-          // }
-
-          // Store session for Flask and redirect to appropriate dashboard
-          console.log(`Login successful for ${user.email} with role: ${userRole}`);
-          
-          // Redirect to Flask route that will verify session and show dashboard
-          const routes = { 
-            student: '/dashboard/student', 
-            teacher: '/dashboard/teacher', 
-            finance: '/dashboard/finance', 
-            hall: '/dashboard/hall', 
-            coach: '/dashboard/coach', 
-            lab: '/dashboard/lab' 
-          };
-          
-          window.location.href = routes[userRole] || routes[selectedRole] || '/dashboard/student';
+          // Let the backend determine the actual user role by checking database tables
+          // Instead of relying on frontend metadata, redirect to a generic dashboard
+          // route that will detect the role server-side and redirect appropriately
+          window.location.href = '/dashboard/student'; // Backend will redirect to correct role
         } else {
           throw new Error('Login failed - no session created');
         }

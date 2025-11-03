@@ -20,17 +20,25 @@ load_dotenv()
 
 # Get Supabase configuration from environment
 url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")  # This is the service role key for backend access
+service_key = os.getenv("SUPABASE_KEY")  # Service role key for backend operations
+anon_key = os.getenv("SUPABASE_ANON_KEY")  # Anonymous key for frontend/client operations
 
 # Validate that required environment variables are set
 if not url:
     raise ValueError("SUPABASE_URL environment variable is not set")
-if not key:
+if not service_key:
     raise ValueError("SUPABASE_KEY environment variable is not set")
+if not anon_key:
+    raise ValueError("SUPABASE_ANON_KEY environment variable is not set")
 
 # Create the Supabase client instance
-# This client will be used throughout the application for database access
-supabase = create_client(url, key)
+# Use service key for server-side operations (database access)
+supabase = create_client(url, service_key)
+
+# Export these for use in templates and frontend
+# IMPORTANT: Only export the anonymous key to the frontend, never the service key
+supabase_url = url
+supabase_anon_key = anon_key  # This is safe to use in browser
 
 # ===== STUDENT DATA FUNCTIONS =====
 # These functions handle all student-related data access

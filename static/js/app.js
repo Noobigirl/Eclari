@@ -464,32 +464,6 @@
     });
   }
 
-  // Teacher dashboard mock
-  const teacherTable = $('#teacherTable tbody');
-  if (teacherTable) {
-    // Scoped to classes taught by this teacher
-    const items = [
-      { class: 'Math Y2-A', student: 'S12345 • Ama N.', subject: 'Mathematics', item: 'Textbook MATH-BOOK-12', returned: false },
-      { class: 'Math Y2-A', student: 'S12002 • Malik O.', subject: 'Mathematics', item: 'Workbook MATH-WB-07', returned: true },
-      { class: 'Physics Y1-B', student: 'S12811 • Tumi K.', subject: 'Physics', item: 'Calculator CALC-84', returned: false },
-    ];
-    items.forEach(it => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${it.class}</td>
-        <td>${it.student}</td>
-        <td>${it.subject}</td>
-        <td>${it.item}</td>
-        <td><span class="badge ${it.returned ? 'badge-success' : 'badge-warning'}">${it.returned ? 'Returned' : 'Not Returned'}</span></td>
-        <td>
-          <button class="button button-primary">Mark Returned</button>
-          <button class="button">Flag Issue</button>
-        </td>
-      `;
-      teacherTable.appendChild(tr);
-    });
-  }
-
   // Signature pad functionality (moved outside conditional blocks)
   const canvas = $('#sigPad');
   if (canvas) {
@@ -584,75 +558,11 @@
       // Here you could send this to your server
       alert('Signature saved successfully!'); 
     });
-  }  // Finance dashboard mock
-  const financeTable = $('#financeTable tbody');
-  if (financeTable) {
-    const students = [
-      { name: 'S12345 • Ama N.', tuition: 0, replace: 0, status: 'Clear' },
-      { name: 'S12002 • Malik O.', tuition: 300, replace: 0, status: 'Due' },
-      { name: 'S12811 • Tumi K.', tuition: 0, replace: 45, status: 'Due' }
-    ];
-    const statusClass = (s) => s === 'Clear' ? 'badge-success' : 'badge-danger';
-    students.forEach(s => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${s.name}</td>
-        <td>$${s.tuition}</td>
-        <td>$${s.replace}</td>
-        <td><span class="badge ${statusClass(s.status)}">${s.status}</span></td>
-      `;
-      financeTable.appendChild(tr);
-    });
   }
 
-  // Coach dashboard mock
-  const coachTable = $('#coachTable tbody');
-  if (coachTable) {
-    // Only students who do sport (mock scope)
-    const sports = [
-      { student: 'S12345 • Ama N.', sport: 'Basketball', item: 'Jersey #12', status: 'Returned' },
-      { student: 'S12811 • Tumi K.', sport: 'Soccer', item: 'Shin Guards', status: 'Lost' }
-    ];
-    const statusClass = (s) => s === 'Returned' ? 'badge-success' : 'badge-danger';
-    sports.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.student}</td>
-        <td>${r.sport}</td>
-        <td>${r.item}</td>
-        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
-        <td>
-          <button class="button button-primary">Mark Returned</button>
-          <button class="button">Flag Lost</button>
-        </td>
-      `;
-      coachTable.appendChild(tr);
-    });
-  }
 
-  // Lab dashboard mock
-  const labTable = $('#labTable tbody');
-  if (labTable) {
-    const labs = [
-      { student: 'S12345 • Ama N.', subject: 'Chemistry', item: 'Goggles', cost: 0, status: 'OK' },
-      { student: 'S12002 • Malik O.', subject: 'Biology', item: 'Lab Manual', cost: 15, status: 'Cost' }
-    ];
-    const statusClass = (s) => s === 'OK' ? 'badge-success' : 'badge-warning';
-    labs.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.student}</td>
-        <td>${r.subject}</td>
-        <td>${r.item}</td>
-        <td>$${r.cost}</td>
-        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
-        <td>
-          <button class="button button-primary">Resolve</button>
-        </td>
-      `;
-      labTable.appendChild(tr);
-    });
-  }
+
+
 
   // Hall Page Custom Select Functionality
   const initializeHallSelects = () => {
