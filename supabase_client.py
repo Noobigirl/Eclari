@@ -481,8 +481,22 @@ def search_students(search_term):
         return []
 
 def calculate_subject_clearance_percentage(student_id, subject_id):
-    """Calculate clearance percentage for a specific subject"""
+    """
+    Calculate clearance percentage for a specific subject.
+    
+    NEW LOGIC (Year Group Aware):
+    - Y1 Students: Cleared = approval_status == 'approved'
+    - Y2 Students: Cleared = returned == True
+    - Lab/Sports Materials: ALWAYS require physical return (returned == True)
+    """
     try:
+        # Get student to check year group
+        student = get_student_by_id(student_id)
+        if not student:
+            return 0
+        
+        year_group = student.get('year_group', 2)  # Default to Y2 if not set
+        
         # Get books for this subject
         books = get_student_books(student_id)
         subject_books = [book for book in books if book.get('subject_id', {}).get('subject_id') == subject_id]
@@ -495,14 +509,28 @@ def calculate_subject_clearance_percentage(student_id, subject_id):
         if total_items == 0:
             return 100  # If no items, consider it cleared
         
-        # Count returned/approved items
-        returned_books = sum(1 for book in subject_books if book.get('returned', False))
-        returned_materials = sum(1 for material in subject_materials if material.get('returned', False))
+        # Count cleared items based on year group
+        cleared_count = 0
         
-        returned_items = returned_books + returned_materials
-        percentage = (returned_items / total_items) * 100
+        # Books: Y1 uses approval_status, Y2 uses returned
+        for book in subject_books:
+            if year_group == 1:
+                # Y1: Check approval_status
+                if book.get('approval_status') == 'approved':
+                    cleared_count += 1
+            else:
+                # Y2: Check returned status
+                if book.get('returned', False):
+                    cleared_count += 1
         
+        # Materials: ALWAYS require physical return (both Y1 and Y2)
+        for material in subject_materials:
+            if material.get('returned', False):
+                cleared_count += 1
+        
+        percentage = (cleared_count / total_items) * 100
         return round(percentage)
+        
     except Exception as e:
         print(f"Error calculating subject clearance percentage: {e}")
         return 0
@@ -620,4 +648,293 @@ def get_students_by_hall_with_clearance(hall_id):
         print(f"Error getting students by hall: {e}")
         # If there are database issues, return empty list instead of dummy data
         return []
+
+
+# ===============================
+# YEAR GROUP WORKFLOW FUNCTIONS
+# ===============================
+# These functions support the new Y1/Y2 differentiated clearance workflow
+
+def get_pending_approvals_for_teacher(teacher_id):
+    """
+    Get all pending photo proof submissions for a teacher's subjects.
+    Used by teacher dashboard to show Y1 student submissions awaiting approval.
+    
+    Args:
+        teacher_id (str): The teacher's unique identifier
+        
+    Returns:
+        dict: { 'books': [...], 'materials': [...] } with pending items
+    """
+    try:
+        # Get teacher's classes to find their subjects
+        teacher_classes = get_teacher_classes(teacher_id)
+        subject_ids = [c['subject_id']['subject_id'] for c in teacher_classes if c.get('subject_id')]
+        
+        if not subject_ids:
+            return {'books': [], 'materials': []}
+        
+        # Get books pending approval for these subjects
+        books_result = supabase.table('books').select('''
+            *,
+            student_id (
+                student_id,
+                first_name,
+                last_name,
+                year_group
+            ),
+            subject_id (
+                subject_id,
+                subject_name
+            )
+        ''').in_('subject_id', subject_ids).eq('approval_status', 'pending').not_.is_('image_proof_url', 'null').execute()
+        
+        # For materials, teachers don't approve - lab staff and coaches do
+        # So we return empty materials list for teachers
+        
+        return {
+            'books': books_result.data if books_result.data else [],
+            'materials': []
+        }
+        
+    except Exception as e:
+        print(f"Error getting pending approvals for teacher: {e}")
+        return {'books': [], 'materials': []}
+
+
+def get_pending_approvals_for_staff(staff_id, staff_role):
+    """
+    Get pending material approvals for lab staff or coaches.
+    
+    Args:
+        staff_id (str): The staff member's ID (lab_staff_id or coach_id)
+        staff_role (str): 'lab' or 'coach'
+        
+    Returns:
+        list: Pending material submissions
+    """
+    try:
+        subject_id = 'SCI' if staff_role == 'lab' else 'PE'
+        
+        result = supabase.table('materials').select('''
+            *,
+            student_id (
+                student_id,
+                first_name,
+                last_name,
+                year_group
+            )
+        ''').eq('subject_id', subject_id).eq('approval_status', 'pending').not_.is_('image_proof_url', 'null').execute()
+        
+        return result.data if result.data else []
+        
+    except Exception as e:
+        print(f"Error getting pending material approvals: {e}")
+        return []
+
+
+def approve_book(book_id, teacher_id, action='approve', rejection_reason=None):
+    """
+    Approve or reject a Y1 student's book photo proof submission.
+    
+    Args:
+        book_id (str): The book ID
+        teacher_id (str): The teacher approving/rejecting
+        action (str): 'approve' or 'reject'
+        rejection_reason (str, optional): Reason for rejection (required if action='reject')
+        
+    Returns:
+        dict: Updated book record, or None on failure
+    """
+    try:
+        from datetime import datetime
+        
+        update_data = {
+            'approved_by': teacher_id,
+            'approved_at': datetime.utcnow().isoformat()
+        }
+        
+        if action == 'approve':
+            update_data['approval_status'] = 'approved'
+            update_data['rejection_reason'] = None  # Clear any previous rejection
+        elif action == 'reject':
+            update_data['approval_status'] = 'rejected'
+            if rejection_reason:
+                update_data['rejection_reason'] = rejection_reason
+        else:
+            print(f"Invalid action: {action}")
+            return None
+        
+        result = supabase.table('books').update(update_data).eq('book_id', book_id).execute()
+        return result.data[0] if result.data else None
+        
+    except Exception as e:
+        print(f"Error approving/rejecting book: {e}")
+        return None
+
+
+def approve_material(material_id, staff_id, action='approve', rejection_reason=None):
+    """
+    Approve or reject a Y1 student's material photo proof submission.
+    
+    Args:
+        material_id (str): The material ID
+        staff_id (str): The staff member approving (lab_staff_id or coach_id)
+        action (str): 'approve' or 'reject'
+        rejection_reason (str, optional): Reason for rejection
+        
+    Returns:
+        dict: Updated material record, or None on failure
+    """
+    try:
+        from datetime import datetime
+        
+        update_data = {
+            'approved_by': staff_id,
+            'approved_at': datetime.utcnow().isoformat()
+        }
+        
+        if action == 'approve':
+            update_data['approval_status'] = 'approved'
+            update_data['rejection_reason'] = None
+        elif action == 'reject':
+            update_data['approval_status'] = 'rejected'
+            if rejection_reason:
+                update_data['rejection_reason'] = rejection_reason
+        else:
+            print(f"Invalid action: {action}")
+            return None
+        
+        result = supabase.table('materials').update(update_data).eq('material_id', material_id).execute()
+        return result.data[0] if result.data else None
+        
+    except Exception as e:
+        print(f"Error approving/rejecting material: {e}")
+        return None
+
+
+def upload_proof_image(item_type, item_id, student_id, file_path):
+    """
+    Upload a proof image to Supabase Storage and update the record.
+    
+    This function handles the file upload to Supabase Storage and updates
+    the corresponding database record with the image URL.
+    
+    Args:
+        item_type (str): 'book' or 'material'
+        item_id (str): The book_id or material_id
+        student_id (str): The student's ID (for organizing storage)
+        file_path (str): Path to the image file to upload
+        
+    Returns:
+        dict: { 'success': bool, 'image_url': str } or error info
+    """
+    try:
+        from datetime import datetime
+        import os
+        
+        # Generate unique filename
+        timestamp = int(datetime.utcnow().timestamp())
+        file_ext = os.path.splitext(file_path)[1]
+        storage_path = f"{item_type}s/{student_id}/{item_id}_{timestamp}{file_ext}"
+        
+        # Upload to Supabase Storage
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+            
+        result = supabase.storage.from_('clearance-proofs').upload(
+            path=storage_path,
+            file=file_data,
+            file_options={"content-type": "image/jpeg"}
+        )
+        
+        if result:
+            # Get public URL
+            public_url = supabase.storage.from_('clearance-proofs').get_public_url(storage_path)
+            
+            # Update database record
+            table_name = 'books' if item_type == 'book' else 'materials'
+            id_column = 'book_id' if item_type == 'book' else 'material_id'
+            
+            update_result = supabase.table(table_name).update({
+                'image_proof_url': public_url,
+                'submitted_at': datetime.utcnow().isoformat(),
+                'approval_status': 'pending'
+            }).eq(id_column, item_id).execute()
+            
+            if update_result.data:
+                return {
+                    'success': True,
+                    'image_url': public_url,
+                    'message': 'Proof image uploaded successfully'
+                }
+        
+        return {
+            'success': False,
+            'message': 'Failed to upload image'
+        }
+        
+    except Exception as e:
+        print(f"Error uploading proof image: {e}")
+        return {
+            'success': False,
+            'message': str(e)
+        }
+
+
+def get_class_by_id(class_id):
+    """
+    Get complete class information including year_group and color_block.
+    
+    Args:
+        class_id (str): The class identifier
+        
+    Returns:
+        dict: Class data with subject, teacher, year_group, color_block
+    """
+    try:
+        result = supabase.table('classes').select('''
+            *,
+            subject_id (
+                subject_id,
+                subject_name
+            ),
+            teacher_id (
+                teacher_id,
+                first_name,
+                last_name
+            )
+        ''').eq('class_id', class_id).execute()
+        
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error getting class: {e}")
+        return None
+
+
+def get_y1_students_books(student_id):
+    """
+    Get books for Y1 student with approval workflow information.
+    Includes image_proof_url, approval_status, rejection_reason.
+    
+    Args:
+        student_id (str): The student's ID
+        
+    Returns:
+        list: Books with approval workflow data
+    """
+    try:
+        result = supabase.table('books').select('''
+            *,
+            subject_id (
+                subject_id,
+                subject_name
+            )
+        ''').eq('student_id', student_id).execute()
+        
+        return result.data if result.data else []
+    except Exception as e:
+        print(f"Error getting Y1 student books: {e}")
+        return []
+
 

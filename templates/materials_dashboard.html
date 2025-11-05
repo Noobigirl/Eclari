@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclari — {{ dashboard_title }} Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon_io/favicon-16x16.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/favicon_io/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='images/favicon_io/site.webmanifest') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('home') }}">
+        <img class="brand-mark" src="{{ url_for('static', filename='images/favicon_io/favicon-32x32.png') }}" alt="Eclari Logo">
+        <span class="brand-text">Eclari</span>
+      </a>
+      <nav class="nav">
+        <span class="chip">{{ user.role|title }} Staff</span>
+        <a class="button" href="{{ url_for('logout') }}">Sign out</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+      <div>
+        <h1>{{ dashboard_title }} Dashboard</h1>
+        <p class="subtitle">Managed by <span class="highlight-name">{{ user.first_name }} {{ user.last_name }}</span></p>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+      {% set total_materials = materials | length %}
+      {% set returned_materials = materials | selectattr('returned', 'equalto', true) | list | length %}
+      {% set pending_materials = total_materials - returned_materials %}
+      {% set total_cost = materials | sum(attribute='cost') or 0 %}
+      
+      <div class="card stat-card">
+        <div class="stat-value">{{ total_materials }}</div>
+        <div class="stat-label">Total {{ item_type }} Items</div>
+      </div>
+      
+      <div class="card stat-card">
+        <div class="stat-value text-success">{{ returned_materials }}</div>
+        <div class="stat-label">Returned</div>
+      </div>
+      
+      <div class="card stat-card">
+        <div class="stat-value text-warning">{{ pending_materials }}</div>
+        <div class="stat-label">Pending Return</div>
+      </div>
+      
+      <div class="card stat-card">
+        <div class="stat-value">${{ "%.2f"|format(total_cost) }}</div>
+        <div class="stat-label">Total Value</div>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="toolbar">
+      <input id="materialsSearch" class="input" placeholder="Search by student name or {{ item_type|lower }}..." style="min-width:260px;">
+      <select id="statusFilter" class="input" onchange="filterTable()">
+        <option value="">All Statuses</option>
+        <option value="returned">Returned</option>
+        <option value="pending">Pending Return</option>
+      </select>
+    </div>
+
+    <!-- Materials Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3>{{ table_title }}</h3>
+        <span class="badge">{{ total_materials }} items</span>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="table" id="materialsTable">
+          <thead>
+            <tr>
+              <th>Student Name</th>
+              <th>Student ID</th>
+              <th>{{ category_label }}</th>
+              <th>{{ item_label }}</th>
+              <th class="text-right">Cost</th>
+              <th class="text-center">Status</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if materials %}
+              {% for material in materials %}
+              <tr data-material-id="{{ material.material_id }}" data-student-id="{{ material.student_id.student_id if material.student_id else 'N/A' }}">
+                <td class="font-medium">
+                  {{ material.student_id.first_name if material.student_id else 'Unknown' }} 
+                  {{ material.student_id.last_name if material.student_id else 'Student' }}
+                </td>
+                <td class="font-mono muted">
+                  {{ material.student_id.student_id if material.student_id else 'N/A' }}
+                </td>
+                <td>
+                  <span class="badge">{{ material.subject_id or subject_code }}</span>
+                </td>
+                <td class="font-medium">
+                  {{ material.material_name }}
+                </td>
+                <td class="text-right">
+                  ${{ "%.2f"|format(material.cost or 0) }}
+                </td>
+                <td class="text-center">
+                  {% if material.returned %}
+                    <span class="badge badge-success">Returned</span>
+                  {% else %}
+                    <span class="badge badge-warning">Pending</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <button 
+                    class="button button-sm toggle-return-btn {{ 'button-warning' if material.returned else 'button-primary' }}"
+                    data-material-id="{{ material.material_id }}"
+                    data-returned="{{ material.returned|lower }}">
+                    {% if material.returned %}
+                      Mark Not Returned
+                    {% else %}
+                      Mark Returned
+                    {% endif %}
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center empty-state">
+                  <div class="empty-icon">{{ empty_icon }}</div>
+                  <h3>No {{ item_type }} Items</h3>
+                  <p class="muted">{{ empty_message }}</p>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.bundle.js') }}"></script>
+  
+  <script>
+    // Materials dashboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('materialsSearch');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', filterTable);
+      }
+
+      // Add click handlers to toggle buttons
+      document.querySelectorAll('.toggle-return-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const materialId = this.getAttribute('data-material-id');
+          const currentlyReturned = this.getAttribute('data-returned') === 'true';
+          toggleMaterialStatus(materialId, currentlyReturned);
+        });
+      });
+    });
+
+    function filterTable() {
+      const searchTerm = document.getElementById('materialsSearch').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const rows = document.querySelectorAll('#materialsTable tbody tr[data-material-id]');
+      
+      rows.forEach(row => {
+        const studentName = row.children[0].textContent.toLowerCase();
+        const studentId = row.children[1].textContent.toLowerCase();
+        const materialName = row.children[3].textContent.toLowerCase();
+        const statusBadge = row.children[5].textContent.toLowerCase();
+        
+        const matchesSearch = studentName.includes(searchTerm) || 
+                            studentId.includes(searchTerm) || 
+                            materialName.includes(searchTerm);
+        
+        const matchesStatus = !statusFilter || 
+                            (statusFilter === 'returned' && statusBadge.includes('returned')) ||
+                            (statusFilter === 'pending' && statusBadge.includes('pending'));
+        
+        row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+      });
+    }
+
+    async function toggleMaterialStatus(materialId, currentlyReturned) {
+      const newReturnedStatus = !currentlyReturned;
+      
+      try {
+        const response = await fetch(`/api/update/material/${materialId}/return`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            returned: newReturnedStatus
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Reload page to show updated data
+          location.reload();
+        } else {
+          alert('Failed to update status: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error updating status:', error);
+        alert('An error occurred while updating status.');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -264,9 +264,31 @@ def get_user_data_by_auth_uid(auth_uid):
                 'role': 'finance'  # Special role for financial clearance management
             }
         
-        # Future: Add checks for other staff tables as needed
-        # Could include: coaches, lab staff, librarians, etc.
-        # Each would follow the same pattern as above
+        # Check lab_staff table (handles science lab equipment)
+        lab_staff = supabase.table('lab_staff').select('*').eq('auth_uid', auth_uid).execute()
+        if lab_staff.data:
+            user = lab_staff.data[0]
+            return {
+                'id': user['lab_staff_id'],
+                'auth_uid': auth_uid,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': 'lab',
+                'specialization': user.get('specialization')  # Physics, Chemistry, Biology, or All
+            }
+        
+        # Check coaches table (handles sports equipment)
+        coach = supabase.table('coaches').select('*').eq('auth_uid', auth_uid).execute()
+        if coach.data:
+            user = coach.data[0]
+            return {
+                'id': user['coach_id'],
+                'auth_uid': auth_uid,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': 'coach',
+                'sport': user.get('sport')  # Football, Basketball, Athletics, etc.
+            }
         
         # User authenticated but not found in any role table
         return None
@@ -461,27 +483,41 @@ def create_app():
         # Lab staff manage science equipment and materials
         elif role == 'lab':
             dashboard_data.update({
-                'lab_materials': get_materials_by_subject('SCI'),  # Science materials only
-                'all_materials': get_all_materials()  # All materials for reference
+                'materials': get_materials_by_subject('SCI'),  # Science materials only
+                'dashboard_title': 'Lab Equipment',
+                'item_type': 'Equipment',
+                'table_title': 'Laboratory Equipment Tracking',
+                'category_label': 'Lab Subject',
+                'item_label': 'Equipment Name',
+                'subject_code': 'SCI',
+                'empty_icon': '🔬',
+                'empty_message': 'No laboratory equipment found in the system.'
             })
         
         # ===== COACH DASHBOARD =====
         # Sports coaches manage PE equipment and sports materials
         elif role == 'coach':
             dashboard_data.update({
-                'sports_materials': get_materials_by_subject('PE'),  # PE/Sports materials only
-                'all_students': get_all_students()  # For sports team management
+                'materials': get_materials_by_subject('PE'),  # PE/Sports materials only
+                'dashboard_title': 'Sports Equipment',
+                'item_type': 'Equipment',
+                'table_title': 'Sports Equipment Tracking',
+                'category_label': 'Sports Category',
+                'item_label': 'Equipment Name',
+                'subject_code': 'PE',
+                'empty_icon': '⚽',
+                'empty_message': 'No sports equipment found in the system.'
             })
         
         # ===== TEMPLATE ROUTING =====
         # Map each role to its corresponding HTML template
         template_map = {
-            'student': 'student.html',   # Student clearance dashboard
-            'teacher': 'teacher.html',   # Teacher class management
-            'finance': 'finance.html',   # Financial clearance management
-            'hall': 'hall.html',         # Hall residential management
-            'coach': 'coach.html',       # Sports equipment management
-            'lab': 'lab.html'            # Lab equipment management
+            'student': 'student.html',              # Student clearance dashboard
+            'teacher': 'teacher.html',              # Teacher class management
+            'finance': 'finance.html',              # Financial clearance management
+            'hall': 'hall.html',                    # Hall residential management
+            'coach': 'materials_dashboard.html',    # Sports equipment (shared template)
+            'lab': 'materials_dashboard.html'       # Lab equipment (shared template)
         }
         
         # Get the appropriate template, defaulting to student if role not found
