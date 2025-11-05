@@ -1274,6 +1274,22 @@ input, select {
   gap: 24px;
 }
 
+.dashboard-header h1 {
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.highlight-name {
+  font-weight: 600;
+  color: var(--ala-maroon);
+  font-size: 1rem;
+}
+
 .hall-controls {
   display: flex;
   flex-direction: column;
@@ -1907,11 +1923,26 @@ input, select {
   gap: 0.5rem;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .button-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+/* Ensure button warning style exists */
+.button-warning {
+  background-color: var(--warning);
+  color: white;
+  border: none;
+}
+
+.button-warning:hover {
+  background-color: #b45309;
+  transform: translateY(-1px);
 }
 
 /* Modal Styles */
@@ -2071,4 +2102,41 @@ input, select {
     width: 100%;
     min-width: unset;
   }
+}
+
+/* ===== SORTABLE TABLE STYLES ===== */
+.table th[onclick] {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.table th[onclick]:hover {
+  background-color: rgba(74, 35, 35, 0.05);
+}
+
+.table th[onclick]::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.table th.sort-asc::after {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 6px solid currentColor;
+  opacity: 1;
+}
+
+.table th.sort-desc::after {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid currentColor;
+  opacity: 1;
 }

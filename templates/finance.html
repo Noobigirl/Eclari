@@ -15,6 +15,10 @@
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon_io/favicon-16x16.png') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/favicon_io/apple-touch-icon.png') }}">
   <link rel="manifest" href="{{ url_for('static', filename='images/favicon_io/site.webmanifest') }}">
+  
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -33,8 +37,10 @@
   <main class="container">
     <!-- Dashboard Header -->
     <div class="dashboard-header">
-      <h1>Financial Dashboard</h1>
-      <p class="muted">Managing student financial clearance for {{ user.first_name }} {{ user.last_name }}</p>
+      <div>
+        <h1>Financial Dashboard</h1>
+        <p class="subtitle">Managed by <span class="highlight-name">{{ user.first_name }} {{ user.last_name }}</span></p>
+      </div>
     </div>
 
     <!-- Financial Summary Cards -->
@@ -223,6 +229,7 @@
     function initializeSearchAndFilter() {
       const searchInput = document.getElementById('financeSearch');
       const statusFilter = document.getElementById('statusFilter');
+      const sortBySelect = document.getElementById('sortBy');
       
       if (searchInput) {
         searchInput.addEventListener('input', filterTable);
@@ -230,6 +237,29 @@
       
       if (statusFilter) {
         statusFilter.addEventListener('change', filterTable);
+      }
+      
+      if (sortBySelect) {
+        sortBySelect.addEventListener('change', function() {
+          const sortType = this.value;
+          let column;
+          
+          switch(sortType) {
+            case 'name':
+              column = 'name';
+              break;
+            case 'amount':
+              column = 'balance'; // Sort by balance (most relevant for finance)
+              break;
+            case 'status':
+              column = 'status';
+              break;
+            default:
+              column = 'name';
+          }
+          
+          sortTable(column);
+        });
       }
     }
 
@@ -259,66 +289,192 @@
       });
     }
 
+    // Track sort direction for each column
+    let sortDirection = {};
+
     function sortTable(column) {
       const tbody = document.querySelector('#financeTable tbody');
       const rows = Array.from(tbody.querySelectorAll('tr[data-student-id]'));
+      
+      // Toggle sort direction for this column
+      if (!sortDirection[column]) {
+        sortDirection[column] = 'asc';
+      } else {
+        sortDirection[column] = sortDirection[column] === 'asc' ? 'desc' : 'asc';
+      }
+      
+      const direction = sortDirection[column];
       
       rows.sort((a, b) => {
         let aVal, bVal;
         
         switch(column) {
           case 'name':
-            aVal = a.children[0].textContent;
-            bVal = b.children[0].textContent;
+            aVal = a.children[0].textContent.trim();
+            bVal = b.children[0].textContent.trim();
             break;
           case 'id':
-            aVal = a.children[1].textContent;
-            bVal = b.children[1].textContent;
+            aVal = a.children[1].textContent.trim();
+            bVal = b.children[1].textContent.trim();
             break;
           case 'tuition':
-            aVal = parseFloat(a.children[2].textContent.replace('$', ''));
-            bVal = parseFloat(b.children[2].textContent.replace('$', ''));
+            aVal = parseFloat(a.children[2].textContent.replace(/[$,]/g, ''));
+            bVal = parseFloat(b.children[2].textContent.replace(/[$,]/g, ''));
             break;
           case 'paid':
-            aVal = parseFloat(a.children[3].textContent.replace('$', ''));
-            bVal = parseFloat(b.children[3].textContent.replace('$', ''));
+            aVal = parseFloat(a.children[3].textContent.replace(/[$,]/g, ''));
+            bVal = parseFloat(b.children[3].textContent.replace(/[$,]/g, ''));
             break;
           case 'balance':
-            aVal = parseFloat(a.children[4].textContent.replace('$', ''));
-            bVal = parseFloat(b.children[4].textContent.replace('$', ''));
+            aVal = parseFloat(a.children[4].textContent.replace(/[$,]/g, ''));
+            bVal = parseFloat(b.children[4].textContent.replace(/[$,]/g, ''));
             break;
           case 'status':
-            aVal = a.children[5].textContent;
-            bVal = b.children[5].textContent;
+            aVal = a.children[5].textContent.trim();
+            bVal = b.children[5].textContent.trim();
             break;
           default:
             return 0;
         }
         
+        let comparison = 0;
         if (typeof aVal === 'string') {
-          return aVal.localeCompare(bVal);
+          comparison = aVal.localeCompare(bVal);
+        } else {
+          comparison = aVal - bVal;
         }
-        return aVal - bVal;
+        
+        // Apply sort direction
+        return direction === 'asc' ? comparison : -comparison;
       });
       
       rows.forEach(row => tbody.appendChild(row));
+      
+      // Update column header indicators
+      updateSortIndicators(column, direction);
     }
 
-    function markPaid(studentId) {
-      if (confirm(`Mark student ${studentId} as paid?`)) {
-        if (window.showNotification) {
-          window.showNotification(`Payment recorded for ${studentId}`, 'success');
-        }
-        // TODO: Implement backend API call
+    function updateSortIndicators(activeColumn, direction) {
+      // Remove all existing indicators
+      document.querySelectorAll('#financeTable th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+      });
+      
+      // Add indicator to active column
+      const columnMap = {
+        'name': 0,
+        'id': 1,
+        'tuition': 2,
+        'paid': 3,
+        'balance': 4,
+        'status': 5
+      };
+      
+      const columnIndex = columnMap[activeColumn];
+      if (columnIndex !== undefined) {
+        const th = document.querySelectorAll('#financeTable th')[columnIndex];
+        th.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
       }
     }
 
-    function markUnpaid(studentId) {
-      if (confirm(`Reverse payment for student ${studentId}? This will mark them as having an outstanding balance.`)) {
+    async function markPaid(studentId) {
+      if (!confirm(`Mark student ${studentId} as paid?`)) {
+        return;
+      }
+      
+      // Get the tuition amount from the table
+      const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+      if (!row) {
         if (window.showNotification) {
-          window.showNotification(`Payment reversed for ${studentId}`, 'warning');
+          window.showNotification('Student record not found', 'error');
         }
-        // TODO: Implement backend API call
+        return;
+      }
+      
+      const tuitionText = row.children[2].textContent.replace('$', '').trim();
+      const tuitionDue = parseFloat(tuitionText);
+      
+      try {
+        const response = await fetch(`/api/update/financial/${studentId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount_paid: tuitionDue,  // Pay full amount
+            status: 'cleared'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (window.showNotification) {
+            window.showNotification(`Payment recorded for ${studentId}`, 'success');
+          }
+          // Reload page to show updated data
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          if (window.showNotification) {
+            window.showNotification(`Failed to update: ${result.message}`, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Error marking as paid:', error);
+        if (window.showNotification) {
+          window.showNotification('An error occurred while updating payment status.', 'error');
+        }
+      }
+    }
+
+    async function markUnpaid(studentId) {
+      if (!confirm(`Reverse payment for student ${studentId}? This will mark them as having an outstanding balance.`)) {
+        return;
+      }
+      
+      // Get the tuition amount to set back as balance
+      const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+      if (!row) {
+        if (window.showNotification) {
+          window.showNotification('Student record not found', 'error');
+        }
+        return;
+      }
+      
+      const tuitionText = row.children[2].textContent.replace('$', '').trim();
+      const tuitionDue = parseFloat(tuitionText);
+      
+      try {
+        const response = await fetch(`/api/update/financial/${studentId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount_paid: 0,
+            balance: tuitionDue,
+            status: 'outstanding'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (window.showNotification) {
+            window.showNotification(`Payment reversed for ${studentId}`, 'warning');
+          }
+          // Reload page to show updated data
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          if (window.showNotification) {
+            window.showNotification(`Failed to update: ${result.message}`, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Error reversing payment:', error);
+        if (window.showNotification) {
+          window.showNotification('An error occurred while reversing payment.', 'error');
+        }
       }
     }
 
@@ -340,10 +496,115 @@
     }
 
     function exportFinancialData() {
-      if (window.showNotification) {
-        window.showNotification('Exporting financial data...', 'info');
+      try {
+        if (window.showNotification) {
+          window.showNotification('Generating PDF report...', 'info');
+        }
+        
+        // Get jsPDF from the global scope
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add header
+        doc.setFontSize(18);
+        doc.setTextColor(74, 35, 35); // ALA maroon color
+        doc.text('Eclari Financial Report', 14, 20);
+        
+        // Add date
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        const today = new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        doc.text(`Generated on: ${today}`, 14, 28);
+        
+        // Add summary statistics
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Financial Summary', 14, 38);
+        
+        doc.setFontSize(10);
+        const rows = Array.from(document.querySelectorAll('#financeTable tbody tr[data-student-id]'));
+        const totalStudents = rows.length;
+        
+        let totalOutstanding = 0;
+        let totalPaid = 0;
+        let clearedCount = 0;
+        
+        rows.forEach(row => {
+          const balance = parseFloat(row.children[4].textContent.replace(/[$,]/g, ''));
+          const paid = parseFloat(row.children[3].textContent.replace(/[$,]/g, ''));
+          totalOutstanding += balance;
+          totalPaid += paid;
+          if (balance <= 0) clearedCount++;
+        });
+        
+        doc.text(`Total Students: ${totalStudents}`, 14, 45);
+        doc.text(`Students Cleared: ${clearedCount}`, 14, 52);
+        doc.text(`Students Pending: ${totalStudents - clearedCount}`, 14, 59);
+        doc.text(`Total Outstanding: $${totalOutstanding.toFixed(2)}`, 14, 66);
+        doc.text(`Total Collected: $${totalPaid.toFixed(2)}`, 14, 73);
+        
+        // Prepare table data
+        const tableData = [];
+        rows.forEach(row => {
+          if (row.style.display !== 'none') { // Only include visible rows
+            tableData.push([
+              row.children[0].textContent.trim(), // Name
+              row.children[1].textContent.trim(), // ID
+              row.children[2].textContent.trim(), // Tuition Due
+              row.children[3].textContent.trim(), // Amount Paid
+              row.children[4].textContent.trim(), // Balance
+              row.children[5].textContent.trim()  // Status (includes badge text)
+                .replace('Cleared', 'Cleared')
+                .replace('Outstanding', 'Outstanding')
+            ]);
+          }
+        });
+        
+        // Add table using autoTable plugin
+        doc.autoTable({
+          startY: 80,
+          head: [['Student Name', 'Student ID', 'Tuition Due', 'Amount Paid', 'Balance', 'Status']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [74, 35, 35], // ALA maroon
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+          },
+          alternateRowStyles: {
+            fillColor: [245, 245, 245]
+          },
+          styles: {
+            fontSize: 9,
+            cellPadding: 3
+          },
+          columnStyles: {
+            0: { cellWidth: 40 }, // Name
+            1: { cellWidth: 30 }, // ID
+            2: { cellWidth: 25, halign: 'right' }, // Tuition
+            3: { cellWidth: 25, halign: 'right' }, // Paid
+            4: { cellWidth: 25, halign: 'right' }, // Balance
+            5: { cellWidth: 25, halign: 'center' }  // Status
+          }
+        });
+        
+        // Save the PDF
+        const filename = `Eclari_Financial_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+        
+        if (window.showNotification) {
+          window.showNotification('PDF report exported successfully!', 'success');
+        }
+      } catch (error) {
+        console.error('Error exporting PDF:', error);
+        if (window.showNotification) {
+          window.showNotification('Failed to export PDF. Please try again.', 'error');
+        }
       }
-      // TODO: Implement export functionality
     }
 
     function refreshData() {

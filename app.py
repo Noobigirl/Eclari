@@ -901,15 +901,33 @@ def create_app():
     @verify_supabase_token
     def api_update_financial(student_id):
         """Update financial record for a student"""
-        from supabase_client import update_financial_record
+        from supabase_client import update_financial_record, get_financial_record
         data = request.get_json()
+        
+        # Get current financial record to calculate values
+        current_record = get_financial_record(student_id)
+        if not current_record:
+            return jsonify({'success': False, 'message': 'Financial record not found'}), 404
+        
+        tuition_due = current_record.get('tuition_due', 0)
         
         # Only allow updates to specific fields
         allowed_updates = {}
+        
+        # If amount_paid is provided, calculate balance automatically
         if 'amount_paid' in data:
-            allowed_updates['amount_paid'] = float(data['amount_paid'])
-        if 'balance' in data:
-            allowed_updates['balance'] = float(data['balance'])
+            amount_paid = float(data['amount_paid'])
+            allowed_updates['amount_paid'] = amount_paid
+            allowed_updates['balance'] = tuition_due - amount_paid
+        
+        # Allow direct balance updates (for manual adjustments)
+        if 'balance' in data and 'amount_paid' not in data:
+            balance = float(data['balance'])
+            allowed_updates['balance'] = balance
+            # Calculate amount_paid based on balance
+            allowed_updates['amount_paid'] = tuition_due - balance
+        
+        # Update status if provided
         if 'status' in data:
             allowed_updates['status'] = data['status']
         
@@ -918,7 +936,7 @@ def create_app():
         
         result = update_financial_record(student_id, allowed_updates)
         if result:
-            return jsonify({'success': True, 'message': 'Financial record updated'})
+            return jsonify({'success': True, 'message': 'Financial record updated', 'data': result})
         else:
             return jsonify({'success': False, 'message': 'Failed to update financial record'}), 400
 
