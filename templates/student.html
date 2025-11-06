@@ -53,18 +53,54 @@
         </div>
         
         <div class="ala-light card" style="padding:24px; margin-top:20px;">
-          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Books to Return</h3>
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Books to Return
+            {% if user.year_group == 1 %}
+              <span class="badge badge-info" style="font-size: 0.75rem; font-weight: 500;">Y1: Photo Proof Required</span>
+            {% endif %}
+          </h3>
           <div class="stack">
             {% if student_books %}
               {% for book in student_books %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
-                  <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
+                  <div style="flex: 1;">
                     <strong>{{ book.book_id }}</strong> - {{ book.subject_id.subject_name }}
                     <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(book.cost) }}</small>
+                    
+                    {% if user.year_group == 1 %}
+                      <br>
+                      {% if book.approval_status == 'approved' %}
+                        <small style="color: var(--success); font-weight: 500;">✓ Photo approved by teacher</small>
+                      {% elif book.approval_status == 'rejected' %}
+                        <small style="color: var(--error); font-weight: 500;">✗ Photo rejected: {{ book.rejection_reason or 'Please resubmit' }}</small>
+                      {% elif book.image_proof_url %}
+                        <small style="color: var(--warning); font-weight: 500;">⏳ Photo submitted, awaiting approval</small>
+                      {% else %}
+                        <small style="color: var(--muted);">📸 Upload photo proof to complete clearance</small>
+                      {% endif %}
+                    {% endif %}
                   </div>
-                  <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
-                    {% if book.returned %}Returned{% else %}Pending{% endif %}
-                  </span>
+                  
+                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                    {% if user.year_group == 1 %}
+                      {% if book.approval_status == 'approved' %}
+                        <span class="badge badge-success">Approved</span>
+                      {% elif book.approval_status == 'rejected' %}
+                        <span class="badge badge-error">Rejected</span>
+                        <button class="button button-sm button-primary" onclick="uploadProof('book', '{{ book.book_id }}')">Reupload Photo</button>
+                      {% elif book.image_proof_url %}
+                        <span class="badge badge-warning">Pending Approval</span>
+                        <a href="{{ book.image_proof_url }}" target="_blank" class="button button-sm" style="font-size: 0.75rem;">View Photo</a>
+                      {% else %}
+                        <span class="badge badge-warning">Photo Required</span>
+                        <button class="button button-sm button-primary" onclick="uploadProof('book', '{{ book.book_id }}')">Upload Photo</button>
+                      {% endif %}
+                    {% else %}
+                      {# Y2 students use physical return #}
+                      <span class="badge {% if book.returned %}badge-success{% else %}badge-warning{% endif %}">
+                        {% if book.returned %}Returned{% else %}Pending{% endif %}
+                      </span>
+                    {% endif %}
+                  </div>
                 </div>
               {% endfor %}
             {% else %}
@@ -74,14 +110,17 @@
         </div>
         
         <div class="ala-light card" style="padding:24px; margin-top:20px;">
-          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Materials to Return</h3>
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Materials to Return
+            <span class="badge" style="font-size: 0.75rem; font-weight: 500; background: var(--info);">Physical Return Required</span>
+          </h3>
           <div class="stack">
             {% if student_materials %}
               {% for material in student_materials %}
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
-                  <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
+                  <div style="flex: 1;">
                     <strong>{{ material.material_name }}</strong> - {{ material.subject_id }}
                     <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(material.cost) }}</small>
+                    <br><small style="color: var(--info); font-style: italic;">Lab/Sports materials must be physically returned to staff</small>
                   </div>
                   <span class="badge {% if material.returned %}badge-success{% else %}badge-warning{% endif %}">
                     {% if material.returned %}Returned{% else %}Pending{% endif %}
@@ -189,6 +228,73 @@
   <script>
     window.SUPABASE_URL = "{{ supabase_url }}";
     window.SUPABASE_ANON_KEY = "{{ supabase_anon_key }}";
+    
+    // ===== PHOTO UPLOAD FUNCTIONALITY FOR Y1 STUDENTS =====
+    function uploadProof(itemType, itemId) {
+      // Create file input dynamically
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/jpeg,image/png,image/heic';
+      fileInput.style.display = 'none';
+      
+      fileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size must be less than 5MB');
+          return;
+        }
+        
+        // Validate file type
+        if (!['image/jpeg', 'image/png', 'image/heic'].includes(file.type)) {
+          alert('Please upload a JPEG, PNG, or HEIC image');
+          return;
+        }
+        
+        // Show loading state
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Uploading...';
+        button.disabled = true;
+        
+        try {
+          // Create FormData and upload
+          const formData = new FormData();
+          formData.append('image', file);
+          formData.append('item_type', itemType);
+          formData.append('item_id', itemId);
+          
+          const response = await fetch('/api/upload-proof', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            alert('Photo uploaded successfully! Your teacher will review it soon.');
+            // Reload page to show updated status
+            location.reload();
+          } else {
+            alert('Upload failed: ' + result.message);
+            button.textContent = originalText;
+            button.disabled = false;
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          alert('An error occurred while uploading. Please try again.');
+          button.textContent = originalText;
+          button.disabled = false;
+        }
+      });
+      
+      // Trigger file selection
+      document.body.appendChild(fileInput);
+      fileInput.click();
+      document.body.removeChild(fileInput);
+    }
     
     // Student dashboard functionality
     function goToSubject(subjectId, subjectName) {

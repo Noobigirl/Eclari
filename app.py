@@ -975,6 +975,157 @@ def create_app():
             return jsonify({'success': True, 'message': 'Financial record updated', 'data': result})
         else:
             return jsonify({'success': False, 'message': 'Failed to update financial record'}), 400
+    
+    # ===== YEAR GROUP WORKFLOW API ENDPOINTS =====
+    # New endpoints for Y1/Y2 differentiated clearance workflows
+    
+    @app.route("/api/upload-proof", methods=['POST'])
+    @verify_supabase_token
+    def api_upload_proof():
+        """
+        Upload proof image for Y1 student clearance.
+        Students upload photos of books or materials to be approved by staff.
+        """
+        try:
+            from supabase_client import upload_proof_image
+            
+            user = session.get('user', {})
+            student_id = user.get('id')
+            
+            # Security check: only students can upload proofs
+            if user.get('role') != 'student':
+                return jsonify({'success': False, 'message': 'Only students can upload proof images'}), 403
+            
+            # Get form data
+            if 'image' not in request.files:
+                return jsonify({'success': False, 'message': 'No image file provided'}), 400
+            
+            image_file = request.files['image']
+            item_type = request.form.get('item_type')  # 'book' or 'material'
+            item_id = request.form.get('item_id')
+            
+            if not all([image_file, item_type, item_id]):
+                return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+            
+            # Validate item type
+            if item_type not in ['book', 'material']:
+                return jsonify({'success': False, 'message': 'Invalid item type'}), 400
+            
+            # Save file temporarily
+            import tempfile
+            import os
+            
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, f"{item_id}_{image_file.filename}")
+            image_file.save(temp_path)
+            
+            try:
+                # Upload to Supabase
+                result = upload_proof_image(item_type, item_id, student_id, temp_path)
+                return jsonify(result)
+            finally:
+                # Clean up temp file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+            
+        except Exception as e:
+            print(f"Error in upload_proof endpoint: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+    
+    @app.route("/api/approve-item", methods=['POST'])
+    @verify_supabase_token
+    def api_approve_item():
+        """
+        Approve or reject a Y1 student's proof submission.
+        Used by teachers, lab staff, and coaches.
+        """
+        try:
+            from supabase_client import approve_book, approve_material
+            
+            user = session.get('user', {})
+            staff_id = user.get('id')
+            staff_role = user.get('role')
+            
+            # Security check: only staff can approve
+            if staff_role not in ['teacher', 'lab', 'coach']:
+                return jsonify({'success': False, 'message': 'Only staff can approve items'}), 403
+            
+            data = request.get_json()
+            item_type = data.get('item_type')  # 'book' or 'material'
+            item_id = data.get('item_id')
+            action = data.get('action', 'approve')  # 'approve' or 'reject'
+            rejection_reason = data.get('rejection_reason')
+            
+            if not all([item_type, item_id, action]):
+                return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+            
+            # Validate action
+            if action not in ['approve', 'reject']:
+                return jsonify({'success': False, 'message': 'Invalid action'}), 400
+            
+            # If rejecting, require a reason
+            if action == 'reject' and not rejection_reason:
+                return jsonify({'success': False, 'message': 'Rejection reason is required'}), 400
+            
+            # Call appropriate approval function
+            if item_type == 'book':
+                result = approve_book(item_id, staff_id, action, rejection_reason)
+            elif item_type == 'material':
+                result = approve_material(item_id, staff_id, action, rejection_reason)
+            else:
+                return jsonify({'success': False, 'message': 'Invalid item type'}), 400
+            
+            if result:
+                return jsonify({
+                    'success': True,
+                    'message': f'Item {action}d successfully',
+                    'data': result
+                })
+            else:
+                return jsonify({'success': False, 'message': 'Failed to update item'}), 500
+            
+        except Exception as e:
+            print(f"Error in approve_item endpoint: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+    
+    @app.route("/api/pending-approvals")
+    @verify_supabase_token
+    def api_pending_approvals():
+        """
+        Get pending approval items for the current user.
+        - Teachers: see pending book approvals for their subjects
+        - Lab staff: see pending material approvals for lab equipment
+        - Coaches: see pending material approvals for sports equipment
+        """
+        try:
+            from supabase_client import get_pending_approvals_for_teacher, get_pending_approvals_for_staff
+            
+            user = session.get('user', {})
+            staff_id = user.get('id')
+            staff_role = user.get('role')
+            
+            if staff_role == 'teacher':
+                approvals = get_pending_approvals_for_teacher(staff_id)
+                return jsonify({
+                    'success': True,
+                    'books': approvals.get('books', []),
+                    'materials': approvals.get('materials', [])
+                })
+            
+            elif staff_role in ['lab', 'coach']:
+                materials = get_pending_approvals_for_staff(staff_id, staff_role)
+                return jsonify({
+                    'success': True,
+                    'books': [],
+                    'materials': materials
+                })
+            
+            else:
+                return jsonify({'success': False, 'message': 'Invalid role for approvals'}), 403
+            
+        except Exception as e:
+            print(f"Error in pending_approvals endpoint: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
 
     # Debug routes for testing hall functionality
     @app.route("/debug/hall/<hall_id>")

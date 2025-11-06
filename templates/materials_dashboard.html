@@ -31,6 +31,20 @@
   </header>
 
   <main class="container">
+    <!-- Pending Y1 Photo Approvals Section (Lab/Coach Staff Only) -->
+    <div class="card glass" style="padding:16px; margin-bottom: 20px;" id="pendingApprovalsSection">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin:0;">Pending Y1 Photo Approvals</h3>
+        <button class="button button-sm" onclick="refreshPendingApprovals()">
+          <span>🔄 Refresh</span>
+        </button>
+      </div>
+      
+      <div id="pendingApprovalsContainer">
+        <p style="color: var(--muted); text-align: center; padding: 20px;">Loading pending approvals...</p>
+      </div>
+    </div>
+
     <!-- Dashboard Header -->
     <div class="dashboard-header">
       <div>
@@ -224,6 +238,194 @@
         alert('An error occurred while updating status.');
       }
     }
+    
+    // ===== PENDING APPROVALS FUNCTIONALITY FOR Y1 STUDENTS =====
+    
+    async function loadPendingApprovals() {
+      const container = document.getElementById('pendingApprovalsContainer');
+      
+      try {
+        const response = await fetch('/api/pending-approvals');
+        const data = await response.json();
+        
+        if (!data.success) {
+          container.innerHTML = '<p style="color: var(--error); text-align: center; padding: 20px;">Failed to load pending approvals</p>';
+          return;
+        }
+        
+        const materials = data.materials || [];
+        
+        if (materials.length === 0) {
+          container.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 20px;">No pending photo approvals. All Y1 students are up to date! 🎉</p>';
+          return;
+        }
+        
+        // Build the approvals list
+        let html = '<div style="display: grid; gap: 16px;">';
+        
+        materials.forEach(material => {
+          const student = material.student_id || {};
+          
+          html += `
+            <div class="approval-item" style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; background: var(--card-bg);">
+              <div style="display: flex; gap: 16px; align-items: start;">
+                <!-- Image Preview -->
+                <div style="flex-shrink: 0;">
+                  <img src="${material.image_proof_url}" 
+                       alt="Material proof" 
+                       style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer;"
+                       onclick="viewImageFullsize('${material.image_proof_url}')">
+                </div>
+                
+                <!-- Details -->
+                <div style="flex: 1;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <div>
+                      <h4 style="margin: 0 0 4px; font-size: 1.1rem;">${student.first_name} ${student.last_name}</h4>
+                      <p style="margin: 0; color: var(--muted); font-size: 0.9rem;">Student ID: ${student.student_id}</p>
+                    </div>
+                    <span class="badge">Year ${student.year_group}</span>
+                  </div>
+                  
+                  <div style="margin: 12px 0;">
+                    <p style="margin: 4px 0;"><strong>Material:</strong> ${material.material_name}</p>
+                    <p style="margin: 4px 0;"><strong>Subject:</strong> ${material.subject_id}</p>
+                    <p style="margin: 4px 0;"><strong>Cost:</strong> $${material.cost.toFixed(2)}</p>
+                    <p style="margin: 4px 0; font-size: 0.85rem; color: var(--muted);">Submitted: ${new Date(material.submitted_at).toLocaleDateString()}</p>
+                  </div>
+                  
+                  <!-- Action Buttons -->
+                  <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="button button-sm button-primary" onclick="approveItem('material', '${material.material_id}', true)">
+                      ✓ Approve
+                    </button>
+                    <button class="button button-sm button-error" onclick="rejectItem('material', '${material.material_id}')">
+                      ✗ Reject
+                    </button>
+                    <a href="${material.image_proof_url}" target="_blank" class="button button-sm" style="margin-left: auto;">
+                      View Full Image
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+      } catch (error) {
+        console.error('Error loading pending approvals:', error);
+        container.innerHTML = '<p style="color: var(--error); text-align: center; padding: 20px;">An error occurred while loading approvals</p>';
+      }
+    }
+    
+    async function approveItem(itemType, itemId, approve) {
+      try {
+        const response = await fetch('/api/approve-item', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            item_type: itemType,
+            item_id: itemId,
+            action: 'approve'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage('Material approved successfully!', 'success');
+          // Reload pending approvals
+          loadPendingApprovals();
+        } else {
+          showMessage('Failed to approve: ' + result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error approving material:', error);
+        showMessage('An error occurred while approving', 'error');
+      }
+    }
+    
+    function rejectItem(itemType, itemId) {
+      const reason = prompt('Please provide a reason for rejection (required):');
+      
+      if (!reason || reason.trim() === '') {
+        showMessage('Rejection cancelled: reason is required', 'error');
+        return;
+      }
+      
+      approveItemWithReason(itemType, itemId, reason);
+    }
+    
+    async function approveItemWithReason(itemType, itemId, reason) {
+      try {
+        const response = await fetch('/api/approve-item', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            item_type: itemType,
+            item_id: itemId,
+            action: 'reject',
+            rejection_reason: reason
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage('Material rejected with feedback sent to student', 'success');
+          // Reload pending approvals
+          loadPendingApprovals();
+        } else {
+          showMessage('Failed to reject: ' + result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error rejecting material:', error);
+        showMessage('An error occurred while rejecting', 'error');
+      }
+    }
+    
+    function viewImageFullsize(imageUrl) {
+      window.open(imageUrl, '_blank');
+    }
+    
+    function refreshPendingApprovals() {
+      loadPendingApprovals();
+    }
+    
+    function showMessage(message, type) {
+      // Create a simple toast notification
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        background: ${type === 'success' ? '#22c55e' : '#ef4444'};
+      `;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+    
+    // Load pending approvals on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadPendingApprovals();
+    });
   </script>
 </body>
 </html>
