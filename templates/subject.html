@@ -136,13 +136,16 @@
         <div class="ala-light card" style="padding:24px; margin-bottom:24px;">
           <h4 style="margin:0 0 16px; font-size: 1.2rem;">Photo Upload (Y1 Students)</h4>
           <p style="color:var(--muted); margin:0 0 20px; font-size: 0.95rem; line-height: 1.5;">
-            Upload photos of materials in your possession. Teachers will validate against item codes.
+            Upload photos of books in your possession. Teachers will validate against book IDs.
           </p>
           
           <div class="upload-form">
             <div class="input-group">
-              <label for="itemCode" style="font-weight: 500; margin-bottom: 8px; display: block;">Item Code</label>
-              <input class="input" id="itemCode" placeholder="e.g. {{ subject_id }}-BOOK-01" style="padding: 12px;" />
+              <label for="itemCode" style="font-weight: 500; margin-bottom: 8px; display: block;">Book ID</label>
+              <input class="input" id="itemCode" placeholder="Enter the Book ID from your list above" style="padding: 12px;" />
+              <small style="color:var(--muted); display:block; margin-top:4px;">
+                💡 Tip: Copy the Book ID from your "Books for {{ subject_name }}" list above
+              </small>
             </div>
             
             <div class="input-group">
@@ -197,13 +200,13 @@
       }
     }
     
-    function uploadEvidence() {
-      const itemCode = document.getElementById('itemCode').value;
+    async function uploadEvidence() {
+      const itemCode = document.getElementById('itemCode').value.trim();
       const photoInput = document.getElementById('photo');
       const notes = document.getElementById('notes').value;
       
-      if (!itemCode.trim()) {
-        showMessage('Please enter an item code.', 'error');
+      if (!itemCode) {
+        showMessage('Please enter a Book ID.', 'error');
         return;
       }
       
@@ -212,14 +215,76 @@
         return;
       }
       
-      // Here you would upload to your backend
-      // For now, just show success message
-      showMessage('Evidence uploaded successfully! Waiting for teacher verification.', 'success');
+      // Validate file size (max 5MB)
+      const file = photoInput.files[0];
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        showMessage('Image is too large. Please select an image smaller than 5MB.', 'error');
+        return;
+      }
       
-      // Clear form
-      document.getElementById('itemCode').value = '';
-      document.getElementById('photo').value = '';
-      document.getElementById('notes').value = '';
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
+      if (!allowedTypes.includes(file.type.toLowerCase())) {
+        showMessage('Invalid file type. Please upload a JPEG, PNG, or HEIC image.', 'error');
+        return;
+      }
+      
+      try {
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('item_id', itemCode);
+        formData.append('notes', notes);
+        
+        // For books, always use 'book' as item_type
+        // The item_id should be the actual book_id from the database
+        formData.append('item_type', 'book');
+        
+        // Show loading message
+        showMessage('Uploading photo evidence...', 'info');
+        
+        // Disable button to prevent double-submit
+        const uploadBtn = event.target;
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+        
+        // Upload to backend
+        const response = await fetch('/api/upload-proof', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        // Re-enable button
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '📷 Upload Evidence';
+        
+        if (result.success) {
+          showMessage('Evidence uploaded successfully! Your teacher will review it shortly.', 'success');
+          
+          // Clear form
+          document.getElementById('itemCode').value = '';
+          document.getElementById('photo').value = '';
+          document.getElementById('notes').value = '';
+          
+          // Refresh the page after 2 seconds to show updated status
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          showMessage('Upload failed: ' + result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        showMessage('An error occurred during upload. Please try again.', 'error');
+        
+        // Re-enable button on error
+        const uploadBtn = event.target;
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '📷 Upload Evidence';
+      }
     }
     
     function refreshClearanceStatus() {

@@ -69,3 +69,25 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
+# Temporary documentation files (created during development)
+*_FIX.md
+*_COMPLETE.md
+*_GUIDE.md
+REPORTLAB_FIX.md
+PDF_EXPORT_FIX.md
+UPLOAD_FIX_COMPLETE.md
+QUICK_TEST_GUIDE.md
+
+# Test files
+test_*.py
+
+# Video files
+*.mp4
+*.avi
+*.mov
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

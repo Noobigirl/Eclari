@@ -383,7 +383,7 @@ select option:checked {
 
 .glass { 
   background: var(--glass); 
-  border: 1px solid var(--border); 
+  border: none; 
   box-shadow: var(--shadow); 
 }
 .card { 
@@ -395,6 +395,8 @@ select option:checked {
 .card.glass {
   width: 100%;
   height: fit-content;
+  padding: 0; /* Remove padding for glass card to eliminate white border */
+  overflow: hidden; /* Ensure border-radius applies to child image */
 }
 
 .card { 
@@ -425,7 +427,7 @@ select option:checked {
   height: 100%; 
   object-fit: cover; 
   border-radius: var(--radius); 
-  border: 5px solid var(--ala-maroon); 
+  border: none; 
 }
 .mock-footer { 
   display: flex; 

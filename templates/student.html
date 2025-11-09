@@ -30,6 +30,15 @@
     </div>
   </header>
 
+  {% set color_map = {
+    'green': '#22c55e',
+    'yellow': '#eab308',
+    'blue': '#3b82f6',
+    'red': '#ef4444',
+    'purple': '#a855f7',
+    'orange': '#f97316'
+  } %}
+
   <main class="container">
     <div class="dashboard-grid">
       <div class="card ala-card animate-fadeInLeft" style="padding:32px;">
@@ -52,47 +61,89 @@
           </div>
         </div>
         
+        <!-- Color Block Legend -->
+        {% if student_classes %}
+        <div class="ala-light card" style="padding:20px; margin-top:20px;">
+          <h3 style="margin:0 0 16px; font-size: 1.2rem;">📅 Your Class Schedule</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for enrollment in student_classes %}
+              {% if enrollment.class_id and enrollment.class_id.color_block %}
+                {% set color_block = enrollment.class_id.color_block|lower %}
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+                  <div style="width: 14px; height: 14px; background: {{ color_map[color_block] if color_block in color_map else '#6b7280' }}; border-radius: 50%; box-shadow: 0 0 8px {{ color_map[color_block] if color_block in color_map else '#6b7280' }}40;"></div>
+                  <span style="font-weight: 600; font-size: 0.95rem;">{{ enrollment.class_id.subject_id.subject_name }}</span>
+                  <span class="muted" style="font-size: 0.8rem;">({{ color_block|capitalize }} Block)</span>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <p style="margin: 12px 0 0; font-size: 0.85rem; color: var(--muted);">
+            Colors represent time blocks in your daily schedule. Books below are tagged with their class period color.
+          </p>
+        </div>
+        {% endif %}
+        
         <div class="ala-light card" style="padding:24px; margin-top:20px;">
-          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Books to Return
+          <h3 style="margin:0 0 20px; font-size: 1.3rem;">Books Summary
             {% if user.year_group == 1 %}
-              <span class="badge badge-info" style="font-size: 0.75rem; font-weight: 500;">Y1: Photo Proof Required</span>
+              <span class="badge badge-info" style="font-size: 0.75rem; font-weight: 500;">Use Subject Pages to Upload</span>
             {% endif %}
           </h3>
+          
+          {% if user.year_group == 1 %}
+          <div style="background: var(--info-bg, #e0f2fe); border-left: 4px solid var(--info); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; color: var(--text); font-size: 0.9rem;">
+              📚 <strong>Year 1 Students:</strong> Click on your subject cards below to upload photo proof for each book. All photo submissions must be done through the dedicated subject pages.
+            </p>
+          </div>
+          {% endif %}
+          
           <div class="stack">
             {% if student_books %}
               {% for book in student_books %}
+                {% set book_color_block = namespace(value=None) %}
+                {% for enrollment in student_classes %}
+                  {% if enrollment.subject_id == book.subject_id.subject_id and enrollment.class_id and enrollment.class_id.color_block %}
+                    {% set book_color_block.value = enrollment.class_id.color_block|lower %}
+                  {% endif %}
+                {% endfor %}
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
                   <div style="flex: 1;">
-                    <strong>{{ book.book_id }}</strong> - {{ book.subject_id.subject_name }}
-                    <br><small style="color: var(--muted);">Cost: ${{ "%.2f"|format(book.cost) }}</small>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                      {% if book_color_block.value %}
+                        <div style="width: 10px; height: 10px; background: {{ color_map[book_color_block.value] if book_color_block.value in color_map else '#6b7280' }}; border-radius: 50%; box-shadow: 0 0 6px {{ color_map[book_color_block.value] if book_color_block.value in color_map else '#6b7280' }}40;"></div>
+                      {% endif %}
+                      <strong>{{ book.book_id }}</strong> - {{ book.subject_id.subject_name }}
+                    </div>
+                    <small style="color: var(--muted);">Cost: ${{ "%.2f"|format(book.cost) }}</small>
                     
                     {% if user.year_group == 1 %}
                       <br>
-                      {% if book.approval_status == 'approved' %}
+                      {% if book.approval_status == 'approved' or book.returned %}
                         <small style="color: var(--success); font-weight: 500;">✓ Photo approved by teacher</small>
                       {% elif book.approval_status == 'rejected' %}
-                        <small style="color: var(--error); font-weight: 500;">✗ Photo rejected: {{ book.rejection_reason or 'Please resubmit' }}</small>
+                        <small style="color: var(--error); font-weight: 500;">✗ Photo rejected - resubmit via subject page</small>
                       {% elif book.image_proof_url %}
                         <small style="color: var(--warning); font-weight: 500;">⏳ Photo submitted, awaiting approval</small>
                       {% else %}
-                        <small style="color: var(--muted);">📸 Upload photo proof to complete clearance</small>
+                        <small style="color: var(--muted);">📸 Visit {{ book.subject_id.subject_name }} page to upload</small>
                       {% endif %}
                     {% endif %}
                   </div>
                   
                   <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                     {% if user.year_group == 1 %}
-                      {% if book.approval_status == 'approved' %}
+                      {% if book.approval_status == 'approved' or book.returned %}
                         <span class="badge badge-success">Approved</span>
                       {% elif book.approval_status == 'rejected' %}
                         <span class="badge badge-error">Rejected</span>
-                        <button class="button button-sm button-primary" onclick="uploadProof('book', '{{ book.book_id }}')">Reupload Photo</button>
+                        <button class="button button-sm button-primary" onclick="goToSubject('{{ book.subject_id.subject_id }}', '{{ book.subject_id.subject_name }}')">Go to Subject →</button>
                       {% elif book.image_proof_url %}
                         <span class="badge badge-warning">Pending Approval</span>
                         <a href="{{ book.image_proof_url }}" target="_blank" class="button button-sm" style="font-size: 0.75rem;">View Photo</a>
                       {% else %}
                         <span class="badge badge-warning">Photo Required</span>
-                        <button class="button button-sm button-primary" onclick="uploadProof('book', '{{ book.book_id }}')">Upload Photo</button>
+                        <button class="button button-sm button-primary" onclick="goToSubject('{{ book.subject_id.subject_id }}', '{{ book.subject_id.subject_name }}')">Go to Subject →</button>
                       {% endif %}
                     {% else %}
                       {# Y2 students use physical return #}
@@ -148,22 +199,20 @@
         <div class="ala-light card" style="padding:24px; margin-top:20px;" data-type="financial">
           <h3 style="margin:0 0 20px; font-size: 1.3rem;">Financial Status</h3>
           <div class="stack">
-            <div style="display: flex; justify-content: space-between;">
-              <span>Tuition Due:</span>
-              <span>${{ "%.2f"|format(financial_overview.tuition_due) }}</span>
+            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+              <span style="font-weight: 500;">Amount Due:</span>
+              <span style="font-weight: 600; font-size: 1.1rem;" {% if financial_overview.tuition_due > 0 %}style="color: var(--error);"{% endif %}>${{ "%.2f"|format(financial_overview.tuition_due) }}</span>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>Amount Paid:</span>
-              <span>${{ "%.2f"|format(financial_overview.amount_paid) }}</span>
+            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+              <span style="font-weight: 500;">Amount Paid:</span>
+              <span style="font-weight: 600; font-size: 1.1rem; color: var(--success);">${{ "%.2f"|format(financial_overview.amount_paid) }}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-              <span>Balance:</span>
-              <span {% if financial_overview.balance > 0 %}style="color: var(--error);"{% endif %}>${{ "%.2f"|format(financial_overview.balance) }}</span>
-            </div>
-            <div style="text-align: center; margin-top: 8px;">
-              <span class="badge {% if financial_overview.status == 'Paid' %}badge-success{% elif financial_overview.status == 'Partial' %}badge-warning{% else %}badge-error{% endif %}">
-                {{ financial_overview.status }}
-              </span>
+            <div style="text-align: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+              {% if financial_overview.tuition_due == 0 %}
+                <span class="badge badge-success" style="font-size: 0.9rem; padding: 8px 16px;">✓ Financially Cleared</span>
+              {% else %}
+                <span class="badge badge-warning" style="font-size: 0.9rem; padding: 8px 16px;">⚠ Payment Required</span>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -228,73 +277,6 @@
   <script>
     window.SUPABASE_URL = "{{ supabase_url }}";
     window.SUPABASE_ANON_KEY = "{{ supabase_anon_key }}";
-    
-    // ===== PHOTO UPLOAD FUNCTIONALITY FOR Y1 STUDENTS =====
-    function uploadProof(itemType, itemId) {
-      // Create file input dynamically
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = 'image/jpeg,image/png,image/heic';
-      fileInput.style.display = 'none';
-      
-      fileInput.addEventListener('change', async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('File size must be less than 5MB');
-          return;
-        }
-        
-        // Validate file type
-        if (!['image/jpeg', 'image/png', 'image/heic'].includes(file.type)) {
-          alert('Please upload a JPEG, PNG, or HEIC image');
-          return;
-        }
-        
-        // Show loading state
-        const button = event.target;
-        const originalText = button.textContent;
-        button.textContent = 'Uploading...';
-        button.disabled = true;
-        
-        try {
-          // Create FormData and upload
-          const formData = new FormData();
-          formData.append('image', file);
-          formData.append('item_type', itemType);
-          formData.append('item_id', itemId);
-          
-          const response = await fetch('/api/upload-proof', {
-            method: 'POST',
-            body: formData
-          });
-          
-          const result = await response.json();
-          
-          if (result.success) {
-            alert('Photo uploaded successfully! Your teacher will review it soon.');
-            // Reload page to show updated status
-            location.reload();
-          } else {
-            alert('Upload failed: ' + result.message);
-            button.textContent = originalText;
-            button.disabled = false;
-          }
-        } catch (error) {
-          console.error('Upload error:', error);
-          alert('An error occurred while uploading. Please try again.');
-          button.textContent = originalText;
-          button.disabled = false;
-        }
-      });
-      
-      // Trigger file selection
-      document.body.appendChild(fileInput);
-      fileInput.click();
-      document.body.removeChild(fileInput);
-    }
     
     // Student dashboard functionality
     function goToSubject(subjectId, subjectName) {
@@ -384,15 +366,38 @@
     }
     
     function exportOverallClearance() {
-      const totalItems = document.querySelectorAll('.badge').length;
-      const returnedItems = document.querySelectorAll('.badge-success').length;
-      const percentage = totalItems > 0 ? Math.round((returnedItems / totalItems) * 100) : 100;
+      // Use the backend-calculated clearance percentage (more reliable than counting badges)
+      const percentage = {{ overall_clearance_percentage }};
+      const clearanceStatus = '{{ overall_clearance_status }}';
       
-      if (percentage === 100) {
-        alert('Generating complete clearance certificate...');
-        // Here you would generate the PDF
+      // Get financial data (handle case where financial_overview might not exist)
+      {% if financial_overview %}
+      const tuitionDue = {{ financial_overview.tuition_due if financial_overview.tuition_due is not none else 0 }};
+      {% else %}
+      const tuitionDue = 0;
+      {% endif %}
+      
+      console.log('[DEBUG] Export Clearance Check:', {
+        percentage: percentage,
+        clearanceStatus: clearanceStatus,
+        tuitionDue: tuitionDue
+      });
+      
+      // Check financial clearance first
+      if (tuitionDue > 0) {
+        alert(`Cannot export clearance. You have an outstanding balance of $${tuitionDue.toFixed(2)}. Please clear all financial obligations first.`);
+        return;
+      }
+      
+      // Check if clearance is approved (either status is approved OR percentage is 100%)
+      if (percentage === 100 && (clearanceStatus === 'approved' || clearanceStatus === 'pending')) {
+        // Generate PDF via backend API
+        const studentId = '{{ user.id }}';
+        console.log('[DEBUG] Generating PDF for student:', studentId);
+        window.location.href = `/api/generate-clearance-pdf/${studentId}`;
       } else {
-        alert(`Cannot export clearance. Only ${percentage}% complete. Please return all outstanding items.`);
+        console.log('[DEBUG] Clearance check failed:', { clearanceStatus, percentage });
+        alert(`Cannot export clearance. Status: ${clearanceStatus}, Progress: ${percentage}%. Please return all outstanding items and ensure financial clearance is complete.`);
       }
     }
   </script>

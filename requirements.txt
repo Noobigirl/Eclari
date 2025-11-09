@@ -13,3 +13,5 @@ PyJWT==2.10.1
 # Additional utilities
 requests>=2.31.0
 gunicorn
+reportlab>=4.0.0
+

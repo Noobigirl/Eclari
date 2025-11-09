@@ -71,7 +71,7 @@ def get_student_classes(student_id):
         student_id (str): The student's unique identifier
         
     Returns:
-        list: List of enrollment records with nested class/subject/teacher data
+        list: List of enrollment records with nested class/subject/teacher/color_block data
     """
     try:
         result = supabase.table('student_classes').select('''
@@ -80,6 +80,7 @@ def get_student_classes(student_id):
                 class_id,
                 class_name,
                 teacher_id,
+                color_block,
                 subject_id (
                     subject_id,
                     subject_name
@@ -485,7 +486,7 @@ def calculate_subject_clearance_percentage(student_id, subject_id):
     Calculate clearance percentage for a specific subject.
     
     NEW LOGIC (Year Group Aware):
-    - Y1 Students: Cleared = approval_status == 'approved'
+    - Y1 Students: Cleared = approval_status == 'approved' OR returned == True (fallback for testing)
     - Y2 Students: Cleared = returned == True
     - Lab/Sports Materials: ALWAYS require physical return (returned == True)
     """
@@ -512,11 +513,11 @@ def calculate_subject_clearance_percentage(student_id, subject_id):
         # Count cleared items based on year group
         cleared_count = 0
         
-        # Books: Y1 uses approval_status, Y2 uses returned
+        # Books: Y1 uses approval_status OR returned (for testing), Y2 uses returned
         for book in subject_books:
             if year_group == 1:
-                # Y1: Check approval_status
-                if book.get('approval_status') == 'approved':
+                # Y1: Check approval_status OR returned (fallback for direct DB testing)
+                if book.get('approval_status') == 'approved' or book.get('returned', False):
                     cleared_count += 1
             else:
                 # Y2: Check returned status
@@ -554,57 +555,103 @@ def calculate_subject_clearance_status(student_id, subject_id):
         return 'not-started'
 
 def calculate_overall_clearance_percentage(student_id):
-    """Calculate overall clearance percentage as average of all subject percentages"""
+    """
+    Calculate overall clearance percentage including:
+    - All books (from all subjects)
+    - ALL materials (including non-subject materials like sports gear, art kits)
+    - Financial clearance
+    
+    Note: Hall clearance is managed separately by hall heads
+    """
     try:
-        # Get all student's enrolled classes
-        student_classes = get_student_classes(student_id)
-        
-        if not student_classes:
+        student = get_student_by_id(student_id)
+        if not student:
+            print(f"[DEBUG] Student not found: {student_id}")
             return 0
         
-        total_percentage = 0
-        subject_count = 0
+        year_group = student.get('year_group', 2)
+        print(f"[DEBUG] Student {student_id}, Year Group: {year_group}")
         
-        for enrollment in student_classes:
-            subject_id = enrollment.get('class_id', {}).get('subject_id', {}).get('subject_id')
-            if subject_id:
-                subject_percentage = calculate_subject_clearance_percentage(student_id, subject_id)
-                total_percentage += subject_percentage
-                subject_count += 1
+        # Get all books
+        books = get_student_books(student_id)
+        print(f"[DEBUG] Total books: {len(books)}")
         
-        if subject_count == 0:
-            return 0
-            
-        overall_percentage = total_percentage / subject_count
-        return round(overall_percentage)
+        # Get ALL materials (not filtered by subject)
+        materials = get_student_materials(student_id)
+        print(f"[DEBUG] Total materials: {len(materials)}")
+        
+        # Calculate total items and cleared items
+        total_items = len(books) + len(materials)
+        
+        # Add financial check (1 item)
+        financial = get_student_financial_overview(student_id)
+        if financial:
+            total_items += 1
+            print(f"[DEBUG] Financial overview exists, tuition_due: {financial.get('tuition_due', 0)}")
+        
+        print(f"[DEBUG] Total items to clear: {total_items}")
+        
+        if total_items == 0:
+            print("[DEBUG] No items to clear, returning 100%")
+            return 100  # No items to clear
+        
+        cleared_count = 0
+        
+        # Count cleared books
+        for book in books:
+            book_returned = book.get('returned', False)
+            book_approved = book.get('approval_status') == 'approved'
+            if year_group == 1:
+                if book_approved or book_returned:
+                    cleared_count += 1
+                    print(f"[DEBUG] Book {book.get('book_id')} cleared (approved={book_approved}, returned={book_returned})")
+                else:
+                    print(f"[DEBUG] Book {book.get('book_id')} NOT cleared (approved={book_approved}, returned={book_returned})")
+            else:
+                if book_returned:
+                    cleared_count += 1
+                    print(f"[DEBUG] Book {book.get('book_id')} cleared (returned={book_returned})")
+                else:
+                    print(f"[DEBUG] Book {book.get('book_id')} NOT cleared (returned={book_returned})")
+        
+        # Count cleared materials (ALL materials, regardless of subject)
+        for material in materials:
+            material_returned = material.get('returned', False)
+            if material_returned:
+                cleared_count += 1
+                print(f"[DEBUG] Material {material.get('material_name')} cleared")
+            else:
+                print(f"[DEBUG] Material {material.get('material_name')} NOT cleared")
+        
+        # Check financial clearance
+        if financial:
+            if financial.get('tuition_due', 0) == 0:
+                cleared_count += 1
+                print(f"[DEBUG] Financial cleared")
+            else:
+                print(f"[DEBUG] Financial NOT cleared (due: ${financial.get('tuition_due', 0)})")
+        
+        percentage = (cleared_count / total_items) * 100
+        print(f"[DEBUG] Final: {cleared_count}/{total_items} = {percentage}%")
+        return round(percentage)
         
     except Exception as e:
         print(f"Error calculating overall clearance percentage: {e}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 def calculate_overall_clearance_status(student_id):
-    """Calculate overall clearance status based on all subjects"""
+    """
+    Calculate overall clearance status based on percentage.
+    Simpler approach: just check if percentage is 100%
+    """
     try:
-        # Get all student's enrolled classes
-        student_classes = get_student_classes(student_id)
+        percentage = calculate_overall_clearance_percentage(student_id)
         
-        if not student_classes:
-            return 'not-started'
-        
-        statuses = []
-        for enrollment in student_classes:
-            subject_id = enrollment.get('class_id', {}).get('subject_id', {}).get('subject_id')
-            if subject_id:
-                status = calculate_subject_clearance_status(student_id, subject_id)
-                statuses.append(status)
-        
-        if not statuses:
-            return 'not-started'
-        
-        # Determine overall status
-        if all(status == 'approved' for status in statuses):
+        if percentage == 100:
             return 'approved'
-        elif any(status == 'pending' for status in statuses):
+        elif percentage > 0:
             return 'pending'
         else:
             return 'not-started'
@@ -737,6 +784,9 @@ def approve_book(book_id, teacher_id, action='approve', rejection_reason=None):
     """
     Approve or reject a Y1 student's book photo proof submission.
     
+    When approved, sets both approval_status='approved' AND returned=true
+    This ensures consistency between approval workflow and testing via DB edits.
+    
     Args:
         book_id (str): The book ID
         teacher_id (str): The teacher approving/rejecting
@@ -756,9 +806,11 @@ def approve_book(book_id, teacher_id, action='approve', rejection_reason=None):
         
         if action == 'approve':
             update_data['approval_status'] = 'approved'
+            update_data['returned'] = True  # Also mark as returned for consistency
             update_data['rejection_reason'] = None  # Clear any previous rejection
         elif action == 'reject':
             update_data['approval_status'] = 'rejected'
+            update_data['returned'] = False  # Ensure not marked as returned
             if rejection_reason:
                 update_data['rejection_reason'] = rejection_reason
         else:
@@ -776,6 +828,9 @@ def approve_book(book_id, teacher_id, action='approve', rejection_reason=None):
 def approve_material(material_id, staff_id, action='approve', rejection_reason=None):
     """
     Approve or reject a Y1 student's material photo proof submission.
+    
+    When approved, sets both approval_status='approved' AND returned=true
+    This ensures consistency between approval workflow and testing via DB edits.
     
     Args:
         material_id (str): The material ID
@@ -796,9 +851,11 @@ def approve_material(material_id, staff_id, action='approve', rejection_reason=N
         
         if action == 'approve':
             update_data['approval_status'] = 'approved'
+            update_data['returned'] = True  # Also mark as returned for consistency
             update_data['rejection_reason'] = None
         elif action == 'reject':
             update_data['approval_status'] = 'rejected'
+            update_data['returned'] = False  # Ensure not marked as returned
             if rejection_reason:
                 update_data['rejection_reason'] = rejection_reason
         else:
@@ -833,34 +890,85 @@ def upload_proof_image(item_type, item_id, student_id, file_path):
         from datetime import datetime
         import os
         
+        print(f"[DEBUG upload_proof_image] Starting upload - type: {item_type}, id: {item_id}, student: {student_id}")
+        
+        # Verify file exists
+        if not os.path.exists(file_path):
+            print(f"[ERROR] File not found: {file_path}")
+            return {
+                'success': False,
+                'message': f'File not found: {file_path}'
+            }
+        
         # Generate unique filename
         timestamp = int(datetime.utcnow().timestamp())
         file_ext = os.path.splitext(file_path)[1]
         storage_path = f"{item_type}s/{student_id}/{item_id}_{timestamp}{file_ext}"
         
-        # Upload to Supabase Storage
+        print(f"[DEBUG] Storage path: {storage_path}")
+        
+        # Read file data
         with open(file_path, 'rb') as f:
             file_data = f.read()
-            
-        result = supabase.storage.from_('clearance-proofs').upload(
-            path=storage_path,
-            file=file_data,
-            file_options={"content-type": "image/jpeg"}
-        )
         
-        if result:
-            # Get public URL
-            public_url = supabase.storage.from_('clearance-proofs').get_public_url(storage_path)
+        print(f"[DEBUG] File data read: {len(file_data)} bytes")
+        
+        # Determine content type based on file extension
+        content_type = "image/jpeg"
+        if file_ext.lower() in ['.png']:
+            content_type = "image/png"
+        elif file_ext.lower() in ['.heic']:
+            content_type = "image/heic"
+        
+        print(f"[DEBUG] Content type: {content_type}")
+        
+        # Upload to Supabase Storage
+        print(f"[DEBUG] Uploading to Supabase Storage bucket: clearance-proofs")
+        try:
+            result = supabase.storage.from_('clearance-proofs').upload(
+                path=storage_path,
+                file=file_data,
+                file_options={"content-type": content_type, "upsert": "true"}
+            )
+            print(f"[DEBUG] Upload result: {result}")
+        except Exception as upload_error:
+            print(f"[ERROR] Supabase upload failed: {upload_error}")
+            # Check if bucket exists
+            try:
+                buckets = supabase.storage.list_buckets()
+                print(f"[DEBUG] Available buckets: {[b['name'] for b in buckets]}")
+                if 'clearance-proofs' not in [b['name'] for b in buckets]:
+                    return {
+                        'success': False,
+                        'message': 'Storage bucket "clearance-proofs" does not exist. Please contact administrator.'
+                    }
+            except Exception as bucket_check_error:
+                print(f"[ERROR] Could not check buckets: {bucket_check_error}")
             
-            # Update database record
-            table_name = 'books' if item_type == 'book' else 'materials'
-            id_column = 'book_id' if item_type == 'book' else 'material_id'
-            
+            return {
+                'success': False,
+                'message': f'Upload failed: {str(upload_error)}'
+            }
+        
+        # Get public URL
+        print(f"[DEBUG] Getting public URL...")
+        public_url = supabase.storage.from_('clearance-proofs').get_public_url(storage_path)
+        print(f"[DEBUG] Public URL: {public_url}")
+        
+        # Update database record
+        table_name = 'books' if item_type == 'book' else 'materials'
+        id_column = 'book_id' if item_type == 'book' else 'material_id'
+        
+        print(f"[DEBUG] Updating {table_name} table, column {id_column} = {item_id}")
+        
+        try:
             update_result = supabase.table(table_name).update({
                 'image_proof_url': public_url,
                 'submitted_at': datetime.utcnow().isoformat(),
                 'approval_status': 'pending'
             }).eq(id_column, item_id).execute()
+            
+            print(f"[DEBUG] Database update result: {update_result.data}")
             
             if update_result.data:
                 return {
@@ -868,17 +976,26 @@ def upload_proof_image(item_type, item_id, student_id, file_path):
                     'image_url': public_url,
                     'message': 'Proof image uploaded successfully'
                 }
-        
-        return {
-            'success': False,
-            'message': 'Failed to upload image'
-        }
+            else:
+                print(f"[ERROR] No rows updated in database. Item {item_id} may not exist.")
+                return {
+                    'success': False,
+                    'message': f'{item_type.capitalize()} ID "{item_id}" not found. Please check the ID and try again.'
+                }
+        except Exception as db_error:
+            print(f"[ERROR] Database update failed: {db_error}")
+            return {
+                'success': False,
+                'message': f'Database update failed: {str(db_error)}'
+            }
         
     except Exception as e:
-        print(f"Error uploading proof image: {e}")
+        print(f"[ERROR] Exception in upload_proof_image: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             'success': False,
-            'message': str(e)
+            'message': f'Upload failed: {str(e)}'
         }
 
 

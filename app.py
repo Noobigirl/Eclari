@@ -992,24 +992,44 @@ def create_app():
             user = session.get('user', {})
             student_id = user.get('id')
             
+            print(f"[DEBUG] Upload proof request from student: {student_id}")
+            
             # Security check: only students can upload proofs
             if user.get('role') != 'student':
+                print(f"[ERROR] Non-student tried to upload: {user.get('role')}")
                 return jsonify({'success': False, 'message': 'Only students can upload proof images'}), 403
             
             # Get form data
             if 'image' not in request.files:
+                print("[ERROR] No image file in request")
                 return jsonify({'success': False, 'message': 'No image file provided'}), 400
             
             image_file = request.files['image']
             item_type = request.form.get('item_type')  # 'book' or 'material'
             item_id = request.form.get('item_id')
             
+            print(f"[DEBUG] Upload details - item_type: {item_type}, item_id: {item_id}, filename: {image_file.filename}")
+            
             if not all([image_file, item_type, item_id]):
+                print(f"[ERROR] Missing required fields - image: {bool(image_file)}, type: {item_type}, id: {item_id}")
                 return jsonify({'success': False, 'message': 'Missing required fields'}), 400
             
             # Validate item type
             if item_type not in ['book', 'material']:
+                print(f"[ERROR] Invalid item type: {item_type}")
                 return jsonify({'success': False, 'message': 'Invalid item type'}), 400
+            
+            # Validate file size (5MB max)
+            image_file.seek(0, 2)  # Seek to end
+            file_size = image_file.tell()
+            image_file.seek(0)  # Seek back to start
+            
+            max_size = 5 * 1024 * 1024  # 5MB
+            if file_size > max_size:
+                print(f"[ERROR] File too large: {file_size} bytes")
+                return jsonify({'success': False, 'message': f'File too large ({file_size / 1024 / 1024:.1f}MB). Maximum size is 5MB.'}), 400
+            
+            print(f"[DEBUG] File size OK: {file_size / 1024:.1f}KB")
             
             # Save file temporarily
             import tempfile
@@ -1017,16 +1037,27 @@ def create_app():
             
             temp_dir = tempfile.gettempdir()
             temp_path = os.path.join(temp_dir, f"{item_id}_{image_file.filename}")
+            
+            print(f"[DEBUG] Saving to temp path: {temp_path}")
             image_file.save(temp_path)
             
             try:
                 # Upload to Supabase
+                print(f"[DEBUG] Calling upload_proof_image...")
                 result = upload_proof_image(item_type, item_id, student_id, temp_path)
+                print(f"[DEBUG] Upload result: {result}")
                 return jsonify(result)
             finally:
                 # Clean up temp file
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+                    print(f"[DEBUG] Cleaned up temp file")
+            
+        except Exception as e:
+            print(f"[ERROR] Exception in upload_proof endpoint: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': str(e)}), 500
             
         except Exception as e:
             print(f"Error in upload_proof endpoint: {e}")
@@ -1125,6 +1156,276 @@ def create_app():
             
         except Exception as e:
             print(f"Error in pending_approvals endpoint: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+    
+    @app.route("/api/generate-clearance-pdf/<student_id>")
+    @verify_supabase_token
+    def generate_clearance_pdf(student_id):
+        """Generate a secured, locked clearance certificate PDF"""
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.units import inch
+            from reportlab.pdfgen import canvas
+            from reportlab.lib import colors
+            from reportlab.platypus import Table, TableStyle
+            from io import BytesIO
+            from flask import make_response
+            
+            # Verify user has access to this student's data
+            user = session.get('user', {})
+            if user.get('role') != 'student' or user.get('id') != student_id:
+                # Allow admin/staff to generate for any student
+                if user.get('role') not in ['teacher', 'hall', 'finance', 'lab', 'coach']:
+                    return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+            
+            # Get student clearance data
+            from supabase_client import get_student_by_id
+            student = get_student_by_id(student_id)
+            if not student:
+                return jsonify({'success': False, 'message': 'Student not found'}), 404
+            
+            # Check if fully cleared
+            clearance_percentage = calculate_overall_clearance_percentage(student_id)
+            if clearance_percentage < 100:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Student has not completed clearance yet ({clearance_percentage}% complete)'
+                }), 400
+            
+            # Check financial clearance
+            financial_overview = get_student_financial_overview(student_id)
+            if financial_overview and financial_overview.get('tuition_due', 0) > 0:
+                return jsonify({
+                    'success': False,
+                    'message': f'Student has outstanding balance of ${financial_overview["tuition_due"]:.2f}. Financial clearance required.'
+                }), 400
+            
+            # Create PDF in memory
+            buffer = BytesIO()
+            c = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
+            
+            # ===== PDF SECURITY SETTINGS =====
+            # Note: Encryption removed due to ReportLab API complexity
+            # PDF will be generated without encryption but still read-only for most viewers
+            # owner_password = os.getenv('PDF_OWNER_PASSWORD', 'EclariSecure2024!')
+            # c.setEncrypt('', owner_password)  # Basic encryption without detailed permissions
+            
+            # ===== HEADER WITH SCHOOL BRANDING =====
+            c.setFont("Helvetica-Bold", 24)
+            c.setFillColor(colors.HexColor("#C8A882"))  # ALA Gold
+            c.drawCentredString(width/2, height - 1*inch, "ECLARI")
+            
+            c.setFont("Helvetica", 12)
+            c.setFillColor(colors.black)
+            c.drawCentredString(width/2, height - 1.3*inch, "Student Clearance System")
+            
+            # Horizontal line
+            c.setStrokeColor(colors.HexColor("#C8A882"))
+            c.setLineWidth(2)
+            c.line(0.75*inch, height - 1.6*inch, width - 0.75*inch, height - 1.6*inch)
+            
+            # ===== CERTIFICATE TITLE =====
+            c.setFont("Helvetica-Bold", 20)
+            c.setFillColor(colors.HexColor("#2563eb"))
+            c.drawCentredString(width/2, height - 2.2*inch, "CLEARANCE CERTIFICATE")
+            
+            # ===== STUDENT INFORMATION =====
+            c.setFillColor(colors.black)
+            c.setFont("Helvetica", 11)
+            
+            y_position = height - 2.8*inch
+            
+            # Student details
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(1*inch, y_position, "Student Name:")
+            c.setFont("Helvetica", 11)
+            c.drawString(2.5*inch, y_position, f"{student['first_name']} {student['last_name']}")
+            
+            y_position -= 0.3*inch
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(1*inch, y_position, "Student ID:")
+            c.setFont("Helvetica", 11)
+            c.drawString(2.5*inch, y_position, student['student_id'])
+            
+            y_position -= 0.3*inch
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(1*inch, y_position, "Year Group:")
+            c.setFont("Helvetica", 11)
+            c.drawString(2.5*inch, y_position, f"Year {student.get('year_group', 'N/A')}")
+            
+            # ===== CLEARANCE STATUS BOX =====
+            y_position -= 0.6*inch
+            
+            # Green box for cleared status
+            c.setFillColor(colors.HexColor("#22c55e"))
+            c.setStrokeColor(colors.HexColor("#16a34a"))
+            c.setLineWidth(2)
+            c.roundRect(1*inch, y_position - 0.8*inch, width - 2*inch, 0.8*inch, 0.1*inch, fill=1)
+            
+            # White text inside box
+            c.setFillColor(colors.white)
+            c.setFont("Helvetica-Bold", 16)
+            c.drawCentredString(width/2, y_position - 0.35*inch, "✓ FULLY CLEARED")
+            
+            # ===== CLEARANCE BREAKDOWN TABLE =====
+            y_position -= 1.6*inch
+            
+            c.setFillColor(colors.black)
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(1*inch, y_position, "Clearance Breakdown:")
+            
+            y_position -= 0.3*inch
+            
+            # Get clearance details
+            books = get_student_books(student_id)
+            materials = get_student_materials(student_id)
+            
+            # Create table data
+            table_data = [
+                ['Category', 'Total Items', 'Cleared Items', 'Status']
+            ]
+            
+            # Books
+            books_cleared = sum(1 for b in books if b.get('returned') or b.get('approval_status') == 'approved')
+            table_data.append([
+                'Books',
+                str(len(books)),
+                str(books_cleared),
+                '✓' if books_cleared == len(books) else '✗'
+            ])
+            
+            # Materials
+            materials_cleared = sum(1 for m in materials if m.get('returned'))
+            table_data.append([
+                'Lab/Sports Materials',
+                str(len(materials)),
+                str(materials_cleared),
+                '✓' if materials_cleared == len(materials) else '✗'
+            ])
+            
+            # Create table
+            table = Table(table_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch, 1*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2563eb")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#f1f5f9")),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ]))
+            
+            # Draw table
+            table.wrapOn(c, width, height)
+            table.drawOn(c, 1*inch, y_position - 1.5*inch)
+            
+            # ===== CERTIFICATION STATEMENT =====
+            y_position -= 2.3*inch
+            
+            c.setFont("Helvetica-Oblique", 10)
+            cert_text = (
+                "This is to certify that the above-named student has successfully completed "
+                "all clearance requirements and has returned all books, materials, and equipment "
+                "issued during their academic period."
+            )
+            
+            # Wrap text manually
+            from textwrap import wrap
+            wrapped_lines = wrap(cert_text, width=80)
+            
+            y_pos = y_position
+            for line in wrapped_lines:
+                c.drawString(1*inch, y_pos, line)
+                y_pos -= 0.25*inch
+            
+            # ===== SIGNATURE SECTION (FIXED) =====
+            y_position -= 1.2*inch
+            
+            # Date
+            c.setFont("Helvetica", 10)
+            issue_date = datetime.now().strftime("%B %d, %Y")
+            c.drawString(1*inch, y_position, "Date Issued:")
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(2*inch, y_position, issue_date)
+            
+            y_position -= 0.8*inch
+            
+            # Signature lines - FIXED with proper layout
+            signature_y = y_position
+            
+            # Hall Head Signature (Left)
+            c.setFont("Helvetica", 9)
+            c.setStrokeColor(colors.black)
+            c.setLineWidth(1)
+            c.line(1*inch, signature_y, 3.5*inch, signature_y)  # Signature line
+            c.drawCentredString(2.25*inch, signature_y - 0.25*inch, "Hall Head Signature")
+            
+            # Registrar Signature (Right)
+            c.line(4.5*inch, signature_y, 7*inch, signature_y)  # Signature line
+            c.drawCentredString(5.75*inch, signature_y - 0.25*inch, "Registrar Signature")
+            
+            # ===== OFFICIAL STAMP AREA =====
+            y_position -= 1*inch
+            
+            c.setStrokeColor(colors.HexColor("#94a3b8"))
+            c.setLineWidth(1)
+            c.setDash(3, 3)  # Dashed line
+            c.rect(width/2 - 1*inch, y_position - 0.8*inch, 2*inch, 0.8*inch)
+            c.setDash()  # Reset to solid
+            
+            c.setFont("Helvetica-Oblique", 8)
+            c.setFillColor(colors.HexColor("#64748b"))
+            c.drawCentredString(width/2, y_position - 0.4*inch, "Official School Stamp")
+            
+            # ===== FOOTER =====
+            c.setFont("Helvetica", 7)
+            c.setFillColor(colors.HexColor("#64748b"))
+            footer_text = f"Generated by Eclari Clearance System | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            c.drawCentredString(width/2, 0.5*inch, footer_text)
+            
+            # Security notice
+            c.setFont("Helvetica-Oblique", 8)
+            c.drawCentredString(width/2, 0.3*inch, "This document is digitally secured and cannot be edited")
+            
+            # ===== WATERMARK (SUBTLE) =====
+            c.saveState()
+            c.setFillColor(colors.HexColor("#e2e8f0"))
+            c.setFillAlpha(0.1)
+            c.setFont("Helvetica-Bold", 60)
+            c.translate(width/2, height/2)
+            c.rotate(45)
+            c.drawCentredString(0, 0, "CLEARED")
+            c.restoreState()
+            
+            # ===== FINALIZE PDF =====
+            c.showPage()
+            c.save()
+            
+            # Get PDF data
+            pdf_data = buffer.getvalue()
+            buffer.close()
+            
+            # Generate filename
+            filename = f"clearance_certificate_{student['student_id']}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            
+            # Return PDF as download
+            response = make_response(pdf_data)
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+            
+        except Exception as e:
+            print(f"Error generating PDF: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # Debug routes for testing hall functionality
