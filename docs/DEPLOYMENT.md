@@ -120,18 +120,16 @@ PDF_OWNER_PASSWORD=secure_password_here
 
 #### 1. "ModuleNotFoundError: No module named 'supabase_auth.http_clients'"
 
-**Cause:** Missing dependencies in requirements.txt
+**Cause:** Version incompatibility with supabase package
 
-**Solution:** Ensure your `requirements.txt` includes:
+**Solution:** The project uses `supabase==2.11.0` (a stable LTS version) to avoid dependency conflicts. Ensure your `requirements.txt` has:
 ```
-supabase==2.20.0
-gotrue>=2.0.0
-postgrest>=0.10.0
-realtime>=1.0.0
-storage3>=0.5.0
+supabase==2.11.0
 ```
 
-Then redeploy.
+**NOT** version 2.20.0 or newer, which has breaking changes with the auth modules.
+
+Then redeploy with "Clear build cache & deploy" in Render.
 
 ---
 

@@ -3,8 +3,16 @@
   - All routes documented
   - All endpoints with examples
   - Database function reference
-  - Error handling
-  - cURL testing examples
+  - Error handl### Python (`requirements.txt`)
+
+```
+Flask==3.1.2
+python-dotenv==1.1.1
+supabase==2.11.0  # Pinned to stable LTS version (2.20.0+ has breaking changes)
+reportlab==4.4.4
+```
+
+**Important:** Supabase is pinned to 2.11.0 because newer versions (2.20.0+) have breaking changes with auth module imports that cause deployment failures on Render and other platforms.cURL testing examples
 
 - [x] **docs/DEPLOYMENT.md** - Deployment guide (NEW!)
   - Render deployment step-by-step

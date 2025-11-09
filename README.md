@@ -92,6 +92,8 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+> **⚠️ Important:** The project uses `supabase==2.11.0` (stable version). Do **not** upgrade to 2.20.0+ as it has breaking changes that cause deployment failures. See [RENDER_FIX.md](./RENDER_FIX.md) if you encounter import errors.
+
 **3. Set up Node.js dependencies**
 ```bash
 npm install
