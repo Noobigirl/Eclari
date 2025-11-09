@@ -49,6 +49,8 @@ The system uses 12 main tables:
 - `finance` - Financial clearance records
 - `rooms` - Hall assignments and residential clearance
 
+![Database Schema](./DataBase.png)
+
 **📚 Detailed documentation:**
 - [Project Structure](./PROJECT_STRUCTURE.md) - Complete codebase organization guide
 - [Development Guide](./docs/DEVELOPMENT.md) - Step-by-step development instructions
@@ -360,6 +362,59 @@ Overall clearance = (cleared_items / total_items) × 100%
 - Y1: `approval_status = 'approved'` OR `returned = true`
 - Y2: `returned = true`
 - Financial: `tuition_due = 0`
+
+---
+
+## 🚢 Deployment
+
+### Deploy to Render
+
+The easiest way to deploy Eclari is using [Render](https://render.com/):
+
+1. **Push your code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Create a new Web Service on Render**
+   - Go to [Render Dashboard](https://dashboard.render.com/)
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Render will auto-detect the `render.yaml` configuration
+
+3. **Set Environment Variables**
+   In the Render dashboard, add these environment variables:
+   - `SUPABASE_URL` - Your Supabase project URL
+   - `SUPABASE_KEY` - Your Supabase service role key
+   - `SUPABASE_ANON_KEY` - Your Supabase anonymous key
+   - `FLASK_SECRET_KEY` - A random secret key (generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
+   - `PDF_OWNER_PASSWORD` - Password for PDF encryption
+
+4. **Deploy!**
+   - Click "Create Web Service"
+   - Render will automatically build and deploy your app
+   - Your app will be live at `https://your-app-name.onrender.com`
+
+### Manual Deployment
+
+If deploying to another platform:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+npm install && npm run build
+
+# Run with gunicorn (production server)
+gunicorn --bind 0.0.0.0:8000 --workers 4 app:app
+```
+
+**Important files for deployment:**
+- `requirements.txt` - Python dependencies
+- `runtime.txt` - Python version specification
+- `render.yaml` - Render configuration (optional)
+- `.env.example` - Template for environment variables
 
 ---
 
